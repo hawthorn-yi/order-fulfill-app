@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -32,7 +32,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   <div class="brand"><h1>供应商订单与交付管理</h1><small>采购订单 · 在途 · 未交 · 交付履历</small></div>
   <div class="top-actions">
     <button class="btn ghost" onclick="openDeliveryModal()">＋ 登记交付</button>
-    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步中...</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步中...</button>
+    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步</button>
     <div class="dropdown"><button class="btn primary" onclick="toggleMenu(event)">导入 / 导出 ▾</button>
       <div id="ioMenu" class="menu">
         <button onclick="pickFile('delivery')">导入交付记录</button>
@@ -165,18 +165,15 @@ function clone(x){return JSON.parse(JSON.stringify(x))}
 function loadState(){
   try{
     const saved=localStorage.getItem(STORAGE_KEY);
-    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries)){d.orders.forEach(function(o){if(!o.base)o.base="";if(!o.baseHistory)o.baseHistory=[]});return d}}
+    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries)){for(var _i=0;_i<d.orders.length;_i++){if(!d.orders[_i].base)d.orders[_i].base="";if(!d.orders[_i].baseHistory)d.orders[_i].baseHistory=[]}return d}}
   }catch(e){}
   return clone(SEED);
 }
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));window.__supabaseSync&&window.__supabaseSync()}
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){}if(window.__supabaseSync)window.__supabaseSync()}
 function uid(prefix){return prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
-const BASES=["大理平","剪市","龙潭","泥窝潭"];
-function baseCell(o){const b=o.base||"";return`<span class="base-link" onclick="editBase('${o.id}')" style="cursor:pointer;color:var(--brand);border-bottom:1px dashed var(--brand)">${esc(b)||"<span style="color:#98a2b3">未设置</span>"}</span>`;
-}
-function editBase(id){const o=state.orders.find(x=>x.id===id);if(!o)return;const bb=o.base||"";const m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};m.innerHTML=`<div class="modal" style="width:350px"><div class="modal-head"><h3>选择基地 - ${esc(o.poNumber)}</h3><button class="close" onclick="this.closest('.modal-backdrop').remove()">×</button></div><div class="modal-body">${BASES.map(v=>'<div style="padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0'+(bb===v?';background:var(--brand);color:#fff':';background:#f3f6fb')+'" onclick="confirmBase(\''+id+'\',\''+v+'\')">'+v+(bb===v?' ✓':'')+'</div>').join("")}<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px">当前基地: <strong>${esc(bb)||"未设置"}</strong></div></div></div>";document.body.appendChild(m);
-}
-function confirmBase(id,v){var o=state.orders.find(function(x){return x.id===id});if(!o)return;if(o.base===v){var ms=document.querySelectorAll(".modal-backdrop");for(var i=0;i<ms.length;i++)ms[i].remove();return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();var ms=document.querySelectorAll(".modal-backdrop");for(var i=0;i<ms.length;i++)ms[i].remove();toast("基地已更改为 "+v);}
+function baseCell(o){var b=o.base||"";return"<span class=\"base-link\" onclick=\"editBase('"+o.id+"')\" style=\"cursor:pointer;border-bottom:1px dashed var(--brand);color:"+(b?"var(--brand)":"#98a2b3")+"\">"+esc(b||"未设置")+"</span>"}
+function editBase(id){var o=state.orders.find(function(x){return x.id===id});if(!o)return;var bb=o.base||"";var m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};var h="<div class=\"modal\" style=\"width:350px\"><div class=\"modal-head\"><h3>选择基地</h3><button class=\"close\" onclick=\"this.parentElement.parentElement.parentElement.remove()\">×</button></div><div class=\"modal-body\">";for(var i=0;i<4;i++){var v=["大理平","剪市","龙潭","泥窝潭"][i];var hl=(bb===v);h+="<div style=\"padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0"+(hl?";background:var(--brand);color:#fff":";background:#f3f6fb")+"\" onclick=\"confirmBase('"+id+"','"+v+"')\" data-val=\"\">"+v+(hl?" ✓":"")+"</div>"}h+="<div style=\"margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px\">当前基地: <strong>"+esc(bb||"未设置")+"</strong></div></div></div>";m.innerHTML=h;document.body.appendChild(m)}
+function confirmBase(id,v){var o=state.orders.find(function(x){return x.id===id});if(!o)return;if(o.base===v){var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();toast("基地已更改为 "+v)}
 function today(){return new Date().toISOString().slice(0,10)}
 function qty(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function fmt(v){return nf.format(qty(v))}
@@ -289,7 +286,7 @@ function saveOrder(){
   if(!code||!name||!po||!date||p<=0){toast("请完整填写必填字段","error");return}
   if(t<0||t>p){toast("初始在途数量必须在 0 到采购数量之间","error");return}
   if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){toast("该物料下已存在相同采购单号","error");return}
-  const selBase=document.getElementById("oBase").value;state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:selBase,baseHistory:[],createdAt:new Date().toLocaleString("zh-CN")});
+  var bSel=document.getElementById("oBase").value;state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:bSel,baseHistory:[],createdAt:new Date().toLocaleString("zh-CN")});
   saveState();openMaterials.add(code);closeModal("orderModal");renderOrders();toast("采购订单已新增，未交数量已增加");
 }
 function deleteOrder(id){
@@ -365,7 +362,7 @@ function importOrders(rows){
     if(!code||!name||!po||!date||p<=0){errors.push(`第 ${i+2} 行：必填字段不完整或采购数量无效`);return}
     if(t<0||t>p){errors.push(`第 ${i+2} 行：在途数量无效`);return}
     if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){errors.push(`第 ${i+2} 行：该物料采购单已存在`);return}
-    const baseVal=String(getVal(r,["基地","base"])).trim()||"";state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:baseVal,baseHistory:[],createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});ok++;
+    var bVal=String(getVal(r,["基地","base"])).trim()||"";state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:bVal,baseHistory:[],createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});ok++;
   });
   saveState();renderAll();showImportResult(ok,errors);
 }
@@ -2345,138 +2342,23 @@ renderAll();
 })();
 </script>
 
-<script>
-(function() {
-  var URL = 'https://ifvzmbomwdupjgikcucy.supabase.co';
-  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A';
-  var client = null;
-  var status = 'connecting';
-  var timer = null;
 
-  function btn(){return document.getElementById('syncStatusBtn')}
-  function ui(s,m){status=s;var b=btn();if(!b)return;var c={connected:'#0e9f6e',connecting:'#f79009',error:'#e5484d',disconnected:'#98a2b3'};b.innerHTML='☁';b.style.color=c[s]||'#fff';b.title=m||s}
-  function conn(){ui('connected','云端已连接')}
-  function connErr(e){ui('error','同步失败: '+e)}
-
-  if(typeof supabase!=='undefined'&&supabase.createClient){
-    client=supabase.createClient(URL,KEY,{auth:{persistSession:false},realtime:{enabled:true}})
-  }
-
-  var HDR={apikey:KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
-
-  async function rest(p,o){
-    var r=await fetch(URL+'/rest/v1/'+p,{headers:HDR,...o});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    var ct=r.headers.get('content-type')||'';
-    return ct.includes('json')?r.json():null
-  }
-
-  async function syncUp(){
-    ui('connecting','同步中...');
-    try{
-      var st=typeof window.state!=='undefined'?window.state:null;
-      if(!st){conn();return}
-      var all=[];
-      if(Array.isArray(st.orders))st.orders.forEach(function(o){all.push({table:'orders',row:o})});
-      if(Array.isArray(st.deliveries))st.deliveries.forEach(function(d){all.push({table:'deliveries',row:d})});
-      if(Array.isArray(st.transitHistory))st.transitHistory.forEach(function(t){all.push({table:'transit_history',row:t})});
-      for(var i=0;i<all.length;i++){
-        try{
-          if(client){await client.from(all[i].table).upsert(all[i].row,{onConflict:'id'})}
-          else{await rest(all[i].table,{method:'POST',body:JSON.stringify(all[i].row),headers:Object.assign({},HDR,{'Prefer':'resolution=merge-duplicates'})})}
-        }catch(e){}
-      }
-      conn()
-    }catch(e){connErr(e.message)}
-  }
-
-  async function syncDown(){
-    try{
-      var st=typeof window.state!=='undefined'?window.state:null;
-      if(!st)return;
-      var o,d,t;
-      if(client){var r1=await client.from('orders').select('*');if(!r1.error)o=r1.data;var r2=await client.from('deliveries').select('*');if(!r2.error)d=r2.data;var r3=await client.from('transit_history').select('*');if(!r3.error)t=r3.data}
-      else{try{o=await rest('orders?select=*')}catch(e){}try{d=await rest('deliveries?select=*')}catch(e){}try{t=await rest('transit_history?select=*')}catch(e){}}
-      if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){conn();return}
-      if(o&&o.length){o.forEach(function(co){var idx=st.orders.findIndex(function(x){return x.id===co.id});if(idx>=0)st.orders[idx]=co;else st.orders.push(co)})}
-      if(d&&d.length){d.forEach(function(cd){var idx=st.deliveries.findIndex(function(x){return x.id===cd.id});if(idx>=0)st.deliveries[idx]=cd;else st.deliveries.push(cd)})}
-      if(t&&t.length){if(!st.transitHistory)st.transitHistory=[];t.forEach(function(ct){var idx=st.transitHistory.findIndex(function(x){return x.id===ct.id});if(idx>=0)st.transitHistory[idx]=ct;else st.transitHistory.push(ct)})}
-      try{localStorage.setItem('supplier_order_delivery_manager_v1',JSON.stringify(st))}catch(e){}
-      conn()
-      if(typeof renderOrders==='function')renderOrders()
-      if(typeof renderHistory==='function')renderHistory()
-    }catch(e){connErr(e.message)}
-  }
-
-  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(syncUp,500)};
-  window.syncNow=function(){ui('connecting','同步中...');syncUp().then(syncDown)};
-
-  ui('connecting','连接中...');
-  setTimeout(function(){syncDown().catch(function(e){connErr(e.message)})},2000);
-  setInterval(function(){if(status!=='error')syncDown()},30000);
-
-  if(client&&client.channel){
-    try{var ch=client.channel('db-changes');ch.on('postgres_changes',{event:'*',schema:'public'},function(){setTimeout(syncDown,1500)});ch.subscribe()}catch(e){}
-  }
-})();
-</script>
 <script>
 (function(){
-  var URL = "https://ifvzmbomwdupjgikcucy.supabase.co";
-  var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
-  var status = "connecting";
-  var timer = null;
-  var st = typeof window.state !== "undefined" ? window.state : null;
-
+  var URL="https://ifvzmbomwdupjgikcucy.supabase.co";
+  var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
+  var st=null;
+  var timer=null;
   function btn(){return document.getElementById("syncStatusBtn")}
-  function ui(s,m){status=s;var b=btn();if(!b)return;var c={connected:"#0e9f6e",connecting:"#f79009",error:"#e5484d"};b.innerHTML="☁";b.style.color=c[s]||"#fff";b.title=m||s}
-
-  var HDR={apikey:KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json","Prefer":"return=minimal"};
-
-  async function rest(p,m,b){
-    var r=await fetch(URL+"/rest/v1/"+p,{method:m||"GET",headers:HDR,body:b});
-    if(!r.ok&&r.status!==406)throw new Error(r.status);
-    var ct=r.headers.get("content-type")||"";
-    return ct.includes("json")?r.json():null
-  }
-
-  async function syncUp(){
-    ui("connecting","同步中...");
-    try{
-      var st2=typeof window.state!=="undefined"?window.state:null;
-      if(!st2||!Array.isArray(st2.orders)){ui("connected","无数据");return}
-      for(var i=0;i<st2.orders.length;i++){
-        try{await rest("orders","POST",JSON.stringify(st2.orders[i]),{Prefer:"resolution=merge-duplicates"})}catch(e){}
-      }
-      if(Array.isArray(st2.deliveries)){for(var i=0;i<st2.deliveries.length;i++){try{await rest("deliveries","POST",JSON.stringify(st2.deliveries[i]),{Prefer:"resolution=merge-duplicates"})}catch(e){}}}
-      if(Array.isArray(st2.transitHistory)){for(var i=0;i<st2.transitHistory.length;i++){try{await rest("transit_history","POST",JSON.stringify(st2.transitHistory[i]),{Prefer:"resolution=merge-duplicates"})}catch(e){}}}
-      ui("connected","云端已同步")
-    }catch(e){ui("error","同步失败")}
-  }
-
-  async function syncDown(){
-    try{
-      var st2=typeof window.state!=="undefined"?window.state:null;
-      if(!st2)return;
-      var o,d,t,r;
-      try{r=await rest("orders?select=*");if(Array.isArray(r))o=r}catch(e){}
-      try{r=await rest("deliveries?select=*");if(Array.isArray(r))d=r}catch(e){}
-      try{r=await rest("transit_history?select=*");if(Array.isArray(r))t=r}catch(e){}
-      if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){ui("connected","云端就绪");return}
-      if(o&&o.length){o.forEach(function(co){var idx=st2.orders.findIndex(function(x){return x.id===co.id});if(idx>=0)st2.orders[idx]=co;else st2.orders.push(co)})}
-      if(d&&d.length){d.forEach(function(cd){var idx=st2.deliveries.findIndex(function(x){return x.id===cd.id});if(idx>=0)st2.deliveries[idx]=cd;else st2.deliveries.push(cd)})}
-      if(t&&t.length){if(!st2.transitHistory)st2.transitHistory=[];t.forEach(function(ct){var idx=st2.transitHistory.findIndex(function(x){return x.id===ct.id});if(idx>=0)st2.transitHistory[idx]=ct;else st2.transitHistory.push(ct)})}
-      try{localStorage.setItem("supplier_order_delivery_manager_v1",JSON.stringify(st2))}catch(e){}
-      try{if(typeof renderOrders==="function")renderOrders();if(typeof renderHistory==="function")renderHistory()}catch(e){}
-      ui("connected","已同步")
-    }catch(e){ui("error","拉取失败")}
-  }
-
-  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(syncUp,1000)};
-  window.syncNow=function(){ui("connecting","同步中...");syncUp().then(syncDown)};
-
-  setTimeout(function(){syncDown().then(function(){ui("connected","云端就绪")}).catch(function(e){ui("connected","离线模式")})},3000);
-  setInterval(function(){if(status!=="error")syncDown()},60000);
+  function ui(s,m){var b=btn();if(!b)return;var cl={ok:"#0e9f6e",busy:"#f79009",err:"#e5484d"};b.innerHTML="☁";b.style.color=cl[s]||"#fff";b.title=m||s}
+  var HDR={apikey:KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"};
+  async function rest(p){var r=await fetch(URL+"/rest/v1/"+p,{headers:HDR});if(!r.ok&&r.status!==406)throw Error(r.status+"");try{return await r.json()}catch(e){return null}}
+  async function saveAll(){ui("busy","同步中...");try{var st2=window.state;if(!st2||!st2.orders)return;for(var i=0;i<st2.orders.length;i++){try{await fetch(URL+"/rest/v1/orders",{method:"POST",headers:Object.assign({},HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(st2.orders[i])})}catch(e){}}var a=["deliveries","transit_history"];for(var ai=0;ai<a.length;ai++){var arr=st2[a[ai]];if(arr)for(var i=0;i<arr.length;i++){try{await fetch(URL+"/rest/v1/"+a[ai],{method:"POST",headers:Object.assign({},HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(arr[i])})}catch(e){}}}ui("ok","已同步")}catch(e){ui("err","同步失败")}}
+  async function loadAll(){try{var st2=window.state;if(!st2)return;var o,d,t;try{o=await rest("orders?select=*")}catch(e){}try{d=await rest("deliveries?select=*")}catch(e){}try{t=await rest("transit_history?select=*")}catch(e){}if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){ui("ok","就绪");return}if(o&&o.length)for(var i=0;i<o.length;i++){var idx=st2.orders.findIndex(function(x){return x.id===o[i].id});if(idx>=0)st2.orders[idx]=o[i];else st2.orders.push(o[i])}if(d&&d.length)for(var i=0;i<d.length;i++){var idx=st2.deliveries.findIndex(function(x){return x.id===d[i].id});if(idx>=0)st2.deliveries[idx]=d[i];else st2.deliveries.push(d[i])}if(t&&t.length){if(!st2.transitHistory)st2.transitHistory=[];for(var i=0;i<t.length;i++){var idx=st2.transitHistory.findIndex(function(x){return x.id===t[i].id});if(idx>=0)st2.transitHistory[idx]=t[i];else st2.transitHistory.push(t[i])}}try{localStorage.setItem("supplier_order_delivery_manager_v1",JSON.stringify(st2))}catch(e){}try{if(typeof renderOrders==="function")renderOrders();if(typeof renderHistory==="function")renderHistory()}catch(e){}ui("ok","已同步")}catch(e){ui("err","拉取失败")}}
+  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(saveAll,800)};
+  window.syncNow=function(){ui("busy","同步中...");saveAll().then(loadAll)};
+  setTimeout(function(){loadAll().catch(function(){})},3000);
+  setInterval(function(){loadAll().catch(function(){})},60000);
 })();
 </script>
 </body>
