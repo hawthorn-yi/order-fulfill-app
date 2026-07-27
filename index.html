@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -247,8 +247,8 @@ function openDeliveryModal(orderId){
   try{
     populateMaterialSelects();
     var o=orderId?state.orders.find(function(x){return x.id===orderId}):state.orders.find(function(x){return derived(x).outstandingQty>0});
-    if(o)document.getElementById("dMaterial").value=o.materialCode;
-    if(o){refreshPoOptions(o.id);try{document.getElementById("dPo").value=o.id}catch(e){}}else{refreshPoOptions("")}
+    
+    if(o){document.getElementById("dMaterial").value=o.materialCode;var dx=derived(o);document.getElementById("dPo").innerHTML='<option value="'+o.id+'" selected>'+esc(o.poNumber)+'｜'+esc(o.orderDate)+'｜未交 '+fmt(dx.outstandingQty)+'</option>';showOrderBalance()}
     document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
 }catch(e){toast("打开失败:"+e.message,"error")}}
