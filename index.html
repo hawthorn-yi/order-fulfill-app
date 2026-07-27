@@ -248,7 +248,7 @@ function openDeliveryModal(orderId){
     populateMaterialSelects();
     var o=orderId?state.orders.find(function(x){return x.id===orderId}):state.orders.find(function(x){return derived(x).outstandingQty>0});
     if(o)document.getElementById("dMaterial").value=o.materialCode;
-    refreshPoOptions(o?o.id:"");if(o){try{document.getElementById("dPo").value=o.id}catch(e){}}
+    if(o){refreshPoOptions(o.id);try{document.getElementById("dPo").value=o.id}catch(e){}}else{refreshPoOptions("")}
     document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
 }catch(e){toast("打开失败:"+e.message,"error")}}
