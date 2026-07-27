@@ -327,8 +327,8 @@ function doLogin(){
   var u=document.getElementById("loginUser").value.trim();
   var p=document.getElementById("loginPass").value.trim();
   if(!u){document.getElementById("loginError").textContent="请输入用户名";document.getElementById("loginError").style.display="block";return}
-  fetch(SUPABASE_URL+"/rest/v1/users?username=eq."+encodeURIComponent(u)+"&select=*",{headers:SUPABASE_HDR})
-  .then(r=>r.json()).then(users=>{
+  fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(u)+"&select=*",{headers:SUPABASE_HDR})
+  .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(users=>{
     if(!users||!users.length){document.getElementById("loginError").textContent="用户不存在";document.getElementById("loginError").style.display="block";return}
     var user=users[0];
     if(user.password&&user.password!==p){document.getElementById("loginError").textContent="密码错误";document.getElementById("loginError").style.display="block";return}
@@ -340,11 +340,11 @@ function doLogout(){currentUser=null;currentSupplier=null;state=null;localStorag
 
 /* ===== SUPPLIER MANAGEMENT ===== */
 function loadSuppliers(){
-  return fetch(SUPABASE_URL+"/rest/v1/suppliers?select=slug,name,created_at&order=name.asc",{headers:SUPABASE_HDR})
+  return fetch(SUPABASE_URL+"/suppliers?select=slug,name,created_at&order=name.asc",{headers:SUPABASE_HDR})
   .then(r=>r.json()).then(suppliers=>{
     if(!currentUser)return suppliers;
-    return fetch(SUPABASE_URL+"/rest/v1/users?username=eq."+encodeURIComponent(currentUser)+"&select=allowed_suppliers",{headers:SUPABASE_HDR})
-    .then(r=>r.json()).then(users=>{
+    return fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser)+"&select=allowed_suppliers",{headers:SUPABASE_HDR})
+    .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(users=>{
       var allowed=(users&&users[0])?users[0].allowed_suppliers:null;
       if(!allowed)return suppliers;
       return suppliers.filter(s=>allowed.includes(s.slug));
@@ -378,16 +378,16 @@ function confirmAddSupplier(){
   var name=document.getElementById("newSupplierName").value.trim();
   var slug=document.getElementById("newSupplierSlug").value.trim().replace(/[^a-zA-Z0-9_]/g,"").toLowerCase();
   if(!name||!slug){toast("请填写供应商名称和标识","error");return}
-  fetch(SUPABASE_URL+"/rest/v1/suppliers",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify({slug:slug,name:name,created_at:new Date().toISOString()})})
+  fetch(SUPABASE_URL+"/suppliers",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify({slug:slug,name:name,created_at:new Date().toISOString()})})
   .then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(()=>{
     closeModal("addSupplierModal");toast("供应商已创建："+name);
     if(currentUser){
-      fetch(SUPABASE_URL+"/rest/v1/users?username=eq."+encodeURIComponent(currentUser)+"&select=allowed_suppliers",{headers:SUPABASE_HDR})
-      .then(r=>r.json()).then(users=>{
+      fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser)+"&select=allowed_suppliers",{headers:SUPABASE_HDR})
+      .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(users=>{
         if(users&&users[0]){
           var allowed=users[0].allowed_suppliers||[];
           if(!allowed.includes(slug))allowed.push(slug);
-          fetch(SUPABASE_URL+"/rest/v1/users?username=eq."+encodeURIComponent(currentUser),{method:"PATCH",headers:SUPABASE_HDR,body:JSON.stringify({allowed_suppliers:allowed})});
+          fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser),{method:"PATCH",headers:SUPABASE_HDR,body:JSON.stringify({allowed_suppliers:allowed})});
         }
       });
     }
@@ -405,7 +405,7 @@ function confirmRename(){
   var slug=document.getElementById("renameModal").dataset.slug;
   var newName=document.getElementById("renameNew").value.trim();
   if(!newName){toast("请输入新名称","error");return}
-  fetch(SUPABASE_URL+"/rest/v1/suppliers?slug=eq."+slug,{method:"PATCH",headers:SUPABASE_HDR,body:JSON.stringify({name:newName})})
+  fetch(SUPABASE_URL+"/suppliers?slug=eq."+slug,{method:"PATCH",headers:SUPABASE_HDR,body:JSON.stringify({name:newName})})
   .then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(()=>{
     closeModal("renameModal");
     try{var st=JSON.parse(localStorage.getItem(slugKey(slug)));if(st&&st.orders){st.orders.forEach(o=>{o.supplier_name=newName});localStorage.setItem(slugKey(slug),JSON.stringify(st))}}catch(e){}
