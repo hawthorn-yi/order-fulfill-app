@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>供应商订单与交付管理</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><!-- Supabase REST API used directly (no CDN client needed) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f3f6fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#dfe5ef;--brand:#165dff;--brand2:#0b47ca;--green:#0e9f6e;--orange:#f79009;--red:#e5484d;--nav:#12213d;--shadow:0 8px 24px rgba(25,45,80,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:14px}
@@ -32,7 +32,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   <div class="brand"><h1>供应商订单与交付管理</h1><small>采购订单 · 在途 · 未交 · 交付履历</small></div>
   <div class="top-actions">
     <button class="btn ghost" onclick="openDeliveryModal()">＋ 登记交付</button>
-    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步中...</button>
+    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步中...</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步中...</button>
     <div class="dropdown"><button class="btn primary" onclick="toggleMenu(event)">导入 / 导出 ▾</button>
       <div id="ioMenu" class="menu">
         <button onclick="pickFile('delivery')">导入交付记录</button>
@@ -223,7 +223,7 @@ function renderOrders(){
       const stat=o.outstandingQty>0?'<span class="badge open">有未交</span>':(o.transitQty>0?'<span class="badge transit">在途</span>':'<span class="badge done">已完成</span>');
       const canDelete=!String(o.id).startsWith("excel-");
       const deleteBtn=canDelete?`<button class="btn danger small" onclick="event.stopPropagation();deleteOrder('${o.id}')">删除订单</button>`:"";
-      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal('${o.id}')">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'}${deleteBtn}</div></td></tr>`;
+      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions"><button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal('${o.id}')">登记交付</button>${deleteBtn}</div></td></tr>`;
     }).join("");
     box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     root.appendChild(box);idx++;
@@ -2338,6 +2338,7 @@ renderAll();
 (function() {
   var URL = 'https://ifvzmbomwdupjgikcucy.supabase.co';
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A';
+  var client = null;
   var status = 'connecting';
   var timer = null;
 
@@ -2346,6 +2347,9 @@ renderAll();
   function conn(){ui('connected','云端已连接')}
   function connErr(e){ui('error','同步失败: '+e)}
 
+  if(typeof supabase!=='undefined'&&supabase.createClient){
+    client=supabase.createClient(URL,KEY,{auth:{persistSession:false},realtime:{enabled:true}})
+  }
 
   var HDR={apikey:KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
 
@@ -2366,7 +2370,10 @@ renderAll();
       if(Array.isArray(st.deliveries))st.deliveries.forEach(function(d){all.push({table:'deliveries',row:d})});
       if(Array.isArray(st.transitHistory))st.transitHistory.forEach(function(t){all.push({table:'transit_history',row:t})});
       for(var i=0;i<all.length;i++){
-        try{await rest(all[i].table,{method:'POST',body:JSON.stringify(all[i].row),headers:Object.assign({},HDR,{'Prefer':'resolution=merge-duplicates'})})}catch(e){}
+        try{
+          if(client){await client.from(all[i].table).upsert(all[i].row,{onConflict:'id'})}
+          else{await rest(all[i].table,{method:'POST',body:JSON.stringify(all[i].row),headers:Object.assign({},HDR,{'Prefer':'resolution=merge-duplicates'})})}
+        }catch(e){}
       }
       conn()
     }catch(e){connErr(e.message)}
@@ -2377,7 +2384,8 @@ renderAll();
       var st=typeof window.state!=='undefined'?window.state:null;
       if(!st)return;
       var o,d,t;
-      try{o=await rest('orders?select=*')}catch(e){} try{d=await rest('deliveries?select=*')}catch(e){} try{t=await rest('transit_history?select=*')}catch(e){}
+      if(client){var r1=await client.from('orders').select('*');if(!r1.error)o=r1.data;var r2=await client.from('deliveries').select('*');if(!r2.error)d=r2.data;var r3=await client.from('transit_history').select('*');if(!r3.error)t=r3.data}
+      else{try{o=await rest('orders?select=*')}catch(e){}try{d=await rest('deliveries?select=*')}catch(e){}try{t=await rest('transit_history?select=*')}catch(e){}}
       if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){conn();return}
       if(o&&o.length){o.forEach(function(co){var idx=st.orders.findIndex(function(x){return x.id===co.id});if(idx>=0)st.orders[idx]=co;else st.orders.push(co)})}
       if(d&&d.length){d.forEach(function(cd){var idx=st.deliveries.findIndex(function(x){return x.id===cd.id});if(idx>=0)st.deliveries[idx]=cd;else st.deliveries.push(cd)})}
@@ -2396,6 +2404,69 @@ renderAll();
   setTimeout(function(){syncDown().catch(function(e){connErr(e.message)})},2000);
   setInterval(function(){if(status!=='error')syncDown()},30000);
 
+  if(client&&client.channel){
+    try{var ch=client.channel('db-changes');ch.on('postgres_changes',{event:'*',schema:'public'},function(){setTimeout(syncDown,1500)});ch.subscribe()}catch(e){}
+  }
 })();
-</script></body>
+</script>
+<script>
+(function(){
+  var URL = "https://ifvzmbomwdupjgikcucy.supabase.co";
+  var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
+  var status = "connecting";
+  var timer = null;
+  var st = typeof window.state !== "undefined" ? window.state : null;
+
+  function btn(){return document.getElementById("syncStatusBtn")}
+  function ui(s,m){status=s;var b=btn();if(!b)return;var c={connected:"#0e9f6e",connecting:"#f79009",error:"#e5484d"};b.innerHTML="☁";b.style.color=c[s]||"#fff";b.title=m||s}
+
+  var HDR={apikey:KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json","Prefer":"return=minimal"};
+
+  async function rest(p,m,b){
+    var r=await fetch(URL+"/rest/v1/"+p,{method:m||"GET",headers:HDR,body:b});
+    if(!r.ok&&r.status!==406)throw new Error(r.status);
+    var ct=r.headers.get("content-type")||"";
+    return ct.includes("json")?r.json():null
+  }
+
+  async function syncUp(){
+    ui("connecting","同步中...");
+    try{
+      var st2=typeof window.state!=="undefined"?window.state:null;
+      if(!st2||!Array.isArray(st2.orders)){ui("connected","无数据");return}
+      for(var i=0;i<st2.orders.length;i++){
+        try{await rest("orders","POST",JSON.stringify(st2.orders[i]),{Prefer:"resolution=merge-duplicates"})}catch(e){}
+      }
+      if(Array.isArray(st2.deliveries)){for(var i=0;i<st2.deliveries.length;i++){try{await rest("deliveries","POST",JSON.stringify(st2.deliveries[i]),{Prefer:"resolution=merge-duplicates"})}catch(e){}}}
+      if(Array.isArray(st2.transitHistory)){for(var i=0;i<st2.transitHistory.length;i++){try{await rest("transit_history","POST",JSON.stringify(st2.transitHistory[i]),{Prefer:"resolution=merge-duplicates"})}catch(e){}}}
+      ui("connected","云端已同步")
+    }catch(e){ui("error","同步失败")}
+  }
+
+  async function syncDown(){
+    try{
+      var st2=typeof window.state!=="undefined"?window.state:null;
+      if(!st2)return;
+      var o,d,t,r;
+      try{r=await rest("orders?select=*");if(Array.isArray(r))o=r}catch(e){}
+      try{r=await rest("deliveries?select=*");if(Array.isArray(r))d=r}catch(e){}
+      try{r=await rest("transit_history?select=*");if(Array.isArray(r))t=r}catch(e){}
+      if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){ui("connected","云端就绪");return}
+      if(o&&o.length){o.forEach(function(co){var idx=st2.orders.findIndex(function(x){return x.id===co.id});if(idx>=0)st2.orders[idx]=co;else st2.orders.push(co)})}
+      if(d&&d.length){d.forEach(function(cd){var idx=st2.deliveries.findIndex(function(x){return x.id===cd.id});if(idx>=0)st2.deliveries[idx]=cd;else st2.deliveries.push(cd)})}
+      if(t&&t.length){if(!st2.transitHistory)st2.transitHistory=[];t.forEach(function(ct){var idx=st2.transitHistory.findIndex(function(x){return x.id===ct.id});if(idx>=0)st2.transitHistory[idx]=ct;else st2.transitHistory.push(ct)})}
+      try{localStorage.setItem("supplier_order_delivery_manager_v1",JSON.stringify(st2))}catch(e){}
+      try{if(typeof renderOrders==="function")renderOrders();if(typeof renderHistory==="function")renderHistory()}catch(e){}
+      ui("connected","已同步")
+    }catch(e){ui("error","拉取失败")}
+  }
+
+  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(syncUp,1000)};
+  window.syncNow=function(){ui("connecting","同步中...");syncUp().then(syncDown)};
+
+  setTimeout(function(){syncDown().then(function(){ui("connected","云端就绪")}).catch(function(e){ui("connected","离线模式")})},3000);
+  setInterval(function(){if(status!=="error")syncDown()},60000);
+})();
+</script>
+</body>
 </html>
