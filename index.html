@@ -38,6 +38,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
         <button onclick="pickFile('delivery')">导入交付记录</button>
         <button onclick="pickFile('order')">导入采购订单</button>
         <button onclick="downloadDeliveryTemplate()">下载交付导入模板</button>
+        <button onclick="downloadOrderTemplate()">下载采购订单模板</button>
         <button onclick="exportWorkbook()">导出当前数据</button>
         <button onclick="exportBackup()">备份数据（JSON）</button>
         <button onclick="pickFile('backup')">恢复备份</button>
@@ -138,7 +139,8 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
       <div class="field"><label class="required">下单日期</label><input id="oDate" type="date" class="input"></div>
       <div class="field"><label class="required">采购数量</label><input id="oQty" type="number" min="0.000001" step="any" class="input"></div>
       <div class="field"><label>初始在途数量</label><input id="oTransit" type="number" min="0" step="any" value="0" class="input"></div>
-      <div class="field span2"><div class="help">新增订单的初始未交数量 = 采购数量 − 初始在途数量。初始在途数量不能超过采购数量。</div></div>
+      <div class="field"><label>基地</label><select id="oBase" class="input"><option value="">未选择</option><option value="大理平">大理平</option><option value="剪市">剪市</option><option value="龙潭">龙潭</option><option value="泥窝潭">泥窝潭</option></select></div>
+    <div class="field span2"><div class="help">新增订单的初始未交数量 = 采购数量 − 初始在途数量。初始在途数量不能超过采购数量。</div></div>
     </div>
   </div>
   <div class="modal-foot"><button class="btn outline" onclick="closeModal('orderModal')">取消</button><button class="btn primary" onclick="saveOrder()">新增订单</button></div>
@@ -163,12 +165,18 @@ function clone(x){return JSON.parse(JSON.stringify(x))}
 function loadState(){
   try{
     const saved=localStorage.getItem(STORAGE_KEY);
-    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries))return d}
+    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries)){d.orders.forEach(function(o){if(!o.base)o.base="";if(!o.baseHistory)o.baseHistory=[]});return d}}
   }catch(e){}
   return clone(SEED);
 }
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));window.__supabaseSync&&window.__supabaseSync()}
 function uid(prefix){return prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
+const BASES=["大理平","剪市","龙潭","泥窝潭"];
+function baseCell(o){const b=o.base||"";return`<span class="base-link" onclick="editBase('${o.id}')" style="cursor:pointer;color:var(--brand);border-bottom:1px dashed var(--brand)">${esc(b)||"<span style="color:#98a2b3">未设置</span>"}</span>`;
+}
+function editBase(id){const o=state.orders.find(x=>x.id===id);if(!o)return;const bb=o.base||"";const m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};m.innerHTML=`<div class="modal" style="width:350px"><div class="modal-head"><h3>选择基地 - ${esc(o.poNumber)}</h3><button class="close" onclick="this.closest('.modal-backdrop').remove()">×</button></div><div class="modal-body">${BASES.map(v=>'<div style="padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0'+(bb===v?';background:var(--brand);color:#fff':';background:#f3f6fb')+'" onclick="confirmBase(\''+id+'\',\''+v+'\')">'+v+(bb===v?' ✓':'')+'</div>').join("")}<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px">当前基地: <strong>${esc(bb)||"未设置"}</strong></div></div></div>";document.body.appendChild(m);
+}
+function confirmBase(id,v){const o=state.orders.find(x=>x.id===id);if(!o)return;if(o.base===v){document.querySelectorAll(".modal-backdrop").forEach(x=>x.remove());return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();document.querySelectorAll(".modal-backdrop").forEach(x=>x.remove());toast("基地已更改为 "+v);}
 function today(){return new Date().toISOString().slice(0,10)}
 function qty(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function fmt(v){return nf.format(qty(v))}
@@ -223,9 +231,9 @@ function renderOrders(){
       const stat=o.outstandingQty>0?'<span class="badge open">有未交</span>':(o.transitQty>0?'<span class="badge transit">在途</span>':'<span class="badge done">已完成</span>');
       const canDelete=!String(o.id).startsWith("excel-");
       const deleteBtn=canDelete?`<button class="btn danger small" onclick="event.stopPropagation();deleteOrder('${o.id}')">删除订单</button>`:"";
-      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal('+o.id+')">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'}${deleteBtn}</div></td></tr>`;
+      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${baseCell(o)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal('+o.id+')">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'}${deleteBtn}</div></td></tr>`;
     }).join("");
-    box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>基地</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     root.appendChild(box);idx++;
   }
 }
@@ -281,7 +289,7 @@ function saveOrder(){
   if(!code||!name||!po||!date||p<=0){toast("请完整填写必填字段","error");return}
   if(t<0||t>p){toast("初始在途数量必须在 0 到采购数量之间","error");return}
   if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){toast("该物料下已存在相同采购单号","error");return}
-  state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,createdAt:new Date().toLocaleString("zh-CN")});
+  const selBase=document.getElementById("oBase").value;state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:selBase,baseHistory:[],createdAt:new Date().toLocaleString("zh-CN")});
   saveState();openMaterials.add(code);closeModal("orderModal");renderOrders();toast("采购订单已新增，未交数量已增加");
 }
 function deleteOrder(id){
@@ -357,7 +365,7 @@ function importOrders(rows){
     if(!code||!name||!po||!date||p<=0){errors.push(`第 ${i+2} 行：必填字段不完整或采购数量无效`);return}
     if(t<0||t>p){errors.push(`第 ${i+2} 行：在途数量无效`);return}
     if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){errors.push(`第 ${i+2} 行：该物料采购单已存在`);return}
-    state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});ok++;
+    const baseVal=String(getVal(r,["基地","base"])).trim()||"";state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:baseVal,baseHistory:[],createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});ok++;
   });
   saveState();renderAll();showImportResult(ok,errors);
 }
@@ -372,6 +380,9 @@ function downloadText(name,text,type="text/csv;charset=utf-8"){
 }
 function downloadDeliveryTemplate(){
   downloadText("交付导入模板.csv","物料编码,采购单号,交付数量,交付日期,备注\nASMXC1000072,PO2606010019,100,2026-08-01,送货单示例");
+}
+function downloadOrderTemplate(){
+  downloadText("采购订单导入模板.csv","物料编码,物料名称,采购单号,下单日期,采购数量,初始在途数量,基地\nASMXC1000072,线材蓝色PVC单条线,PO2608010001,2026-08-01,1000,0,大理平");
 }
 function exportWorkbook(){
   const orderRows=state.orders.map(o=>{const x=derived(o);return{"物料编码":o.materialCode,"物料名称":o.materialName,"采购单号":o.poNumber,"下单日期":o.orderDate,"采购数量":o.purchaseQty,"累计已交付数量":x.deliveredQty,"在途数量":o.transitQty,"未交数量":x.outstandingQty}});
