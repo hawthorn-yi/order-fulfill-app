@@ -243,20 +243,20 @@ function populateMaterialSelects(){
   const ms=materials(), options=ms.map(m=>`<option value="${esc(m.code)}">${esc(m.code)}｜${esc(m.name)}</option>`).join("");
   document.getElementById("dMaterial").innerHTML=options;document.getElementById("oMaterial").innerHTML=options;
 }
-function openDeliveryModal(orderId){try{
-  populateMaterialSelects();
-  var o=orderId?state.orders.find(function(x){return x.id===orderId}):state.orders.find(function(x){return derived(x).outstandingQty>0});
-  if(o){document.getElementById("dMaterial").value=o.materialCode;
-  var dx=derived(o);document.getElementById("dPo").innerHTML="<option value=\""+o.id+"\" selected>"+esc(o.poNumber)+"|"+esc(o.orderDate)+"|未交 "+fmt(dx.outstandingQty)+"</option>";
-  showOrderBalance();}
-  document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
+function openDeliveryModal(orderId){
+  try{
+    populateMaterialSelects();
+    var o=orderId?state.orders.find(function(x){return x.id===orderId}):state.orders.find(function(x){return derived(x).outstandingQty>0});
+    if(o)document.getElementById("dMaterial").value=o.materialCode;
+    refreshPoOptions(o?o.id:"");
+    document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
 }catch(e){toast("打开失败:"+e.message,"error")}}
-function refreshPoOptions(preselect=""){
+function refreshPoOptions(preselect){
+  if(typeof preselect==="undefined")preselect="";
   const code=document.getElementById("dMaterial").value;
-  const os=state.orders.filter(o=>o.materialCode===code).map(derived).sort((a,b)=>a.orderDate.localeCompare(b.orderDate));
-  document.getElementById("dPo").innerHTML=os.map(o=>`<option value="${o.id}">${esc(o.poNumber)}｜${esc(o.orderDate)}｜未交 ${fmt(o.outstandingQty)}</option>`).join("");
-  if(preselect)document.getElementById("dPo").value=preselect;
+  const os=state.orders.filter(function(o){return o.materialCode===code}).map(derived).sort(function(a,b){return a.orderDate.localeCompare(b.orderDate)});
+  document.getElementById("dPo").innerHTML=os.map(function(o){return"<option value=\""+o.id+"\""+(o.id===preselect?" selected":"")+">"+esc(o.poNumber)+"｜"+esc(o.orderDate)+"｜未交 "+fmt(o.outstandingQty)+"</option>"}).join("");
   showOrderBalance();
 }
 function showOrderBalance(){
