@@ -254,7 +254,8 @@ function openDeliveryModal(orderId){try{
 function refreshPoOptions(preselect=""){
   const code=document.getElementById("dMaterial").value;
   const os=state.orders.filter(o=>o.materialCode===code).map(derived).sort((a,b)=>a.orderDate.localeCompare(b.orderDate));
-  document.getElementById("dPo").innerHTML=os.map(o=>`<option value="${o.id}" ${o.id===preselect?"selected":""}>${esc(o.poNumber)}｜${esc(o.orderDate)}｜未交 ${fmt(o.outstandingQty)}</option>`).join("");
+  document.getElementById("dPo").innerHTML=os.map(o=>`<option value="${o.id}">${esc(o.poNumber)}｜${esc(o.orderDate)}｜未交 ${fmt(o.outstandingQty)}</option>`).join("");
+  if(preselect)document.getElementById("dPo").value=preselect;
   showOrderBalance();
 }
 function showOrderBalance(){
