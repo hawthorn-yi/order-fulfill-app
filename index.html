@@ -172,7 +172,7 @@ function loadState(){
 function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){}if(window.__supabaseSync)window.__supabaseSync()}
 function uid(prefix){return prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
 function baseCell(o){var b=o.base||"";return"<span class=\"base-link\" onclick=\"editBase('"+o.id+"')\" style=\"cursor:pointer;border-bottom:1px dashed var(--brand);color:"+(b?"var(--brand)":"#98a2b3")+"\">"+esc(b||"未设置")+"</span>"}
-function editBase(id){var o=state.orders.find(function(x){return x.id===id});if(!o)return;var bb=o.base||"";var m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};var h="<div class=\"modal\" style=\"width:350px\"><div class=\"modal-head\"><h3>选择基地</h3><button class=\"close\" onclick=\"this.parentElement.parentElement.parentElement.remove()\">×</button></div><div class=\"modal-body\">";for(var i=0;i<4;i++){var v=["大理平","剪市","龙潭","泥窝潭"][i];var hl=(bb===v);h+="<div style=\"padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0"+(hl?";background:var(--brand);color:#fff":";background:#f3f6fb")+"\" onclick=\"confirmBase('"+id+"','"+v+"')\" data-val=\"\">"+v+(hl?" ✓":"")+"</div>"}h+="<div style=\"margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px\">当前基地: <strong>"+esc(bb||"未设置")+"</strong></div></div></div>";m.innerHTML=h;document.body.appendChild(m)}
+function editBase(id){var o=state.orders.find(function(x){return x.id===id});if(!o)return;var bb=o.base||"";var m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};var h="<div class=\"modal\" style=\"width:350px\"><div class=\"modal-head\"><h3>选择基地</h3><button class=\"close\" onclick=\"this.parentElement.parentElement.parentElement.remove()\">×</button></div><div class=\"modal-body\">";var bases=["大理平","剪市","龙潭","泥窝潭"];for(var i=0;i<bases.length;i++){var v=bases[i];var hl=(bb===v);h+="<div style=\"padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0"+(hl?";background:var(--brand);color:#fff":";background:#f3f6fb")+"\" onclick=\"confirmBase('"+id+"','"+v+"')\" data-val=\"\">"+v+(hl?" ✓":"")+"</div>"}h+="<div style=\"margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px\">当前基地: <strong>"+esc(bb||"未设置")+"</strong></div></div></div>";m.innerHTML=h;document.body.appendChild(m)}
 function confirmBase(id,v){var o=state.orders.find(function(x){return x.id===id});if(!o)return;if(o.base===v){var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();toast("基地已更改为 "+v)}
 function today(){return new Date().toISOString().slice(0,10)}
 function qty(v){const n=Number(v);return Number.isFinite(n)?n:0}
@@ -228,7 +228,7 @@ function renderOrders(){
       const stat=o.outstandingQty>0?'<span class="badge open">有未交</span>':(o.transitQty>0?'<span class="badge transit">在途</span>':'<span class="badge done">已完成</span>');
       const canDelete=!String(o.id).startsWith("excel-");
       const deleteBtn=canDelete?`<button class="btn danger small" onclick="deleteOrder('${o.id}');return false">删除订单</button>`:"";
-      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${baseCell(o)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="openDeliveryModal('+o.id+');return false">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'}${deleteBtn}</div></td></tr>`;
+      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${baseCell(o)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="openDeliveryModal('+o.id+');return false">登记交付</button>':'<span class=\"zero\" style=\"font-size:12px\">无需交付</span>'}${deleteBtn}</div></td></tr>`;
     }).join("");
     box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>基地</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     root.appendChild(box);idx++;
@@ -250,7 +250,7 @@ function openDeliveryModal(orderId=""){
   refreshPoOptions(o?o.id:"");
   document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
-}catch(e){}}
+}
 function refreshPoOptions(preselect=""){
   const code=document.getElementById("dMaterial").value;
   const os=state.orders.filter(o=>o.materialCode===code).map(derived).sort((a,b)=>a.orderDate.localeCompare(b.orderDate));
@@ -2347,7 +2347,6 @@ renderAll();
 (function(){
   var URL="https://ifvzmbomwdupjgikcucy.supabase.co";
   var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
-  var st=null;
   var timer=null;
   function btn(){return document.getElementById("syncStatusBtn")}
   function ui(s,m){var b=btn();if(!b)return;var cl={ok:"#0e9f6e",busy:"#f79009",err:"#e5484d"};b.innerHTML="☁";b.style.color=cl[s]||"#fff";b.title=m||s}
