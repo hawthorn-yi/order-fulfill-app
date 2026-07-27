@@ -247,7 +247,7 @@ function openDeliveryModal(orderId){try{
   populateMaterialSelects();
   let o=orderId?state.orders.find(x=>x.id===orderId):state.orders.find(x=>derived(x).outstandingQty>0);
   if(o)document.getElementById("dMaterial").value=o.materialCode;
-  refreshPoOptions(o?o.id:"");
+  refreshPoOptions(o?o.id:"");if(o){try{document.getElementById("dPo").value=o.id}catch(e){}}
   document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
 }catch(e){toast("打开失败:"+e.message,"error")}}
