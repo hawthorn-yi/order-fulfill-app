@@ -48,6 +48,10 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 .sync-indicator.busy{color:var(--orange)}
 .sync-indicator.err{color:var(--red)}
 
+
+.clickable-num{cursor:pointer;border-bottom:1px dashed transparent;transition:.15s}
+.clickable-num:hover{border-bottom-color:currentColor}
+.action-bar{display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
@@ -55,11 +59,21 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 <!-- Login Page -->
 <div id="page-login" class="login-page">
   <div class="login-card">
-    <h2>供应商订单管理系统</h2>
+    <h2 id="loginTitle">供应商订单管理系统</h2>
     <div id="loginError" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px;text-align:center"></div>
-    <div class="field"><label>用户名</label><input id="loginUser" class="input" placeholder="请输入用户名"></div>
-    <div class="field"><label>密码</label><input id="loginPass" type="password" class="input" placeholder="请输入密码"></div>
-    <button class="btn primary" onclick="doLogin()">登录</button>
+    <div id="loginForm">
+      <div class="field"><label>用户名</label><input id="loginUser" class="input" placeholder="请输入用户名"></div>
+      <div class="field"><label>密码</label><input id="loginPass" type="password" class="input" placeholder="请输入密码"></div>
+      <button class="btn primary" onclick="doLogin()">登录</button>
+      <div style="text-align:center;margin-top:12px"><a href="#" onclick="toggleLoginRegister();return false" style="color:var(--brand);font-size:13px">没有账号？点击注册</a></div>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="field"><label>用户名</label><input id="regUser" class="input" placeholder="请输入用户名（英文）"></div>
+      <div class="field"><label>显示名称</label><input id="regName" class="input" placeholder="如：张三"></div>
+      <div class="field"><label>密码</label><input id="regPass" type="password" class="input" placeholder="请输入密码"></div>
+      <button class="btn primary" onclick="doRegister()">注册</button>
+      <div style="text-align:center;margin-top:12px"><a href="#" onclick="toggleLoginRegister();return false" style="color:var(--brand);font-size:13px">已有账号？点击登录</a></div>
+    </div>
   </div>
 </div>
 
@@ -69,6 +83,8 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <div class="brand"><h1>供应商订单管理系统</h1><small>选择供应商进入订单管理</small></div>
     <div class="top-actions">
       <button class="btn ghost" onclick="addSupplierDialog()">＋ 新增供应商</button>
+      <button id="adminBtn" class="btn ghost" style="display:none" onclick="showUserManagement()">用户管理</button>
+      <button class="btn ghost" onclick="changePasswordDialog()">修改密码</button>
       <button class="btn ghost" onclick="doLogout()">退出登录</button>
     </div>
   </header>
@@ -89,6 +105,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button>
     <span id="syncIndicator" class="sync-indicator ok">已同步</span>
     <button class="btn ghost" onclick="goToSuppliers()">返回供应商列表</button>
+    <button class="btn ghost" onclick="changePasswordDialog()">修改密码</button>
     <button class="btn ghost" onclick="doLogout()">退出</button>
     <div class="dropdown"><button class="btn primary" onclick="toggleMenu(event)">导入 / 导出 ▾</button>
       <div id="ioMenu" class="menu">
@@ -120,7 +137,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
       <div class="kpi red"><div class="label">未交数量</div><div class="value" id="kOutstanding">0</div></div>
     </div>
     <div class="panel">
-      <div class="panel-head"><h2>筛选订单</h2><span id="resultCount" class="zero"></span></div>
+      <div class="panel-head"><h2>筛选订单</h2><span id="resultCount" class="zero"></span><div class="action-bar"><button class="btn outline small" onclick="expandAll()">全部展开</button><button class="btn outline small" onclick="collapseAll()">全部收起</button></div></div>
       <div class="panel-body filters">
         <div class="field"><label>关键词</label><input id="search" class="input" placeholder="物料编码、名称或采购单号" oninput="renderOrders()"></div>
         <div class="field"><label>订单状态</label><select id="statusFilter" class="input" onchange="renderOrders()"><option value="">全部</option><option value="open">有未交</option><option value="transit">有在途</option><option value="done">已完成</option></select></div>
@@ -138,7 +155,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <div class="panel">
       <div class="panel-head"><h2>交付履历</h2><div><button class="btn primary small" onclick="openDeliveryModal()">＋ 登记交付</button></div></div>
       <div class="panel-body">
-        <div class="notice">此处记录通过本页面手动登记或批量导入的交付。删除履历会自动回退对应采购订单的已交数量和未交数量。</div>
+        <div class="notice">交付登记后先进入"在途"，需点击"确认收货"后转入"累计已交"。删除已收货记录会回退对应订单数量。</div>
         <div class="history-tools">
           <input id="historySearch" class="input" placeholder="搜索物料、采购单号、备注" oninput="renderHistory()">
           <input id="historyFrom" type="date" class="input" onchange="renderHistory()">
@@ -146,7 +163,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
           <button class="btn outline" onclick="clearHistoryFilters()">清除</button>
         </div>
         <div style="overflow:auto"><table>
-          <thead><tr><th>交付日期</th><th>物料编码</th><th>物料名称</th><th>采购单号</th><th class="num">交付数量</th><th>备注</th><th>录入方式</th><th>录入时间</th><th>操作</th></tr></thead>
+          <thead><tr><th>交付日期</th><th>物料编码</th><th>物料名称</th><th>采购单号</th><th class="num">数量</th><th>状态</th><th>操作人</th><th>备注</th><th>录入方式</th><th>录入时间</th><th>操作</th></tr></thead>
           <tbody id="historyBody"></tbody>
         </table></div>
         <div id="historyEmpty" class="empty">尚无新增交付履历。</div>
@@ -157,21 +174,42 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   <section id="tab-guide" style="display:none">
     <div class="panel"><div class="panel-head"><h2>使用说明</h2></div><div class="panel-body" style="line-height:1.9">
       <ol>
-        <li><b>登录与供应商选择：</b>输入用户名和密码登录后，系统显示您有权限查看的供应商列表。点击供应商卡片进入对应订单管理页面。不同供应商的数据完全独立。</li>
-        <li><b>登记交付：</b>在订单行中点击"登记交付"按钮，弹窗将锁定显示当前采购单的信息（物料编码、采购单号、未交数量），只需填写交付数量和日期即可。也可从顶部"＋ 登记交付"按钮自由选择物料和采购单号。交付数量不可大于当前未交数量。</li>
-        <li><b>基地筛选：</b>在筛选区域选择基地（大理平、剪市、龙潭、泥窝潭），顶部KPI数据将同步更新为该基地的统计。选择"全部基地"则显示全部数据。</li>
-        <li><b>基地设置与清除：</b>点击订单行的基地链接可设置或更改基地。弹窗底部提供"清除基地"按钮（需确认），清除后基地显示为"未设置"。</li>
+        <li><b>登录与注册：</b>输入用户名和密码登录。新用户可点击"注册"创建账号，注册后需管理员分配供应商权限才能查看对应订单。</li>
+        <li><b>供应商选择：</b>登录后显示有权限的供应商列表，点击卡片进入订单管理页面。管理员可在供应商导航页点击"用户管理"分配权限。</li>
+        <li><b>登记交付流程：</b>点击订单行的"登记交付"按钮，弹窗锁定当前采购单信息。填写交付数量和日期后提交，交付先进入"在途数量"。</li>
+        <li><b>确认收货：</b>在交付履历中或在途数量弹窗中，点击"确认收货"按钮将在途交付转为"已收货"，数量转入累计已交。</li>
+        <li><b>查看交付明细：</b>点击订单行中"累计已交"或"在途数量"数字，弹窗显示对应交付记录详情（数量、日期、操作人、备注等）。</li>
+        <li><b>基地筛选与设置：</b>筛选区选择基地后KPI同步更新。订单行可设置/更改基地，弹窗底部有"清除基地"按钮。</li>
+        <li><b>全部展开/收起：</b>订单总览上方有"全部展开"和"全部收起"按钮，可一键展开或收起所有物料分组。</li>
         <li><b>新增采购订单：</b>可选择现有物料或新增物料，填写采购单号、数量、日期、基地等。新订单自动归属当前供应商。</li>
-        <li><b>批量导入：</b>推荐先下载模板。导入的交付记录和采购订单自动归属当前供应商，数据仅在该供应商界面中可见。</li>
-        <li><b>自动同步：</b>所有数据操作（登记交付、新增订单、导入等）完成后自动同步到云端，无需手动操作。页面顶部显示同步状态指示器。</li>
-        <li><b>供应商名称修改：</b>在供应商导航页面点击供应商卡片上的"修改名称"按钮，修改后全局生效（包括页面标题和所有订单记录中的供应商名称）。</li>
-        <li><b>数据保存：</b>操作数据保存在当前浏览器的 localStorage 中并自动同步至云端。建议定期使用"备份数据（JSON）"功能。</li>
-        <li><b>Excel功能：</b>页面通过 SheetJS CDN 读写 .xlsx 文件；若电脑无法联网，可使用 CSV 模板导入或 JSON 备份/恢复功能。</li>
-      </ol>
+        <li><b>批量导入：</b>推荐先下载模板。导入的交付先进入"在途"，需确认收货后才转入累计已交。日期格式支持：2026-07-27、7/26/2026、7月26日、2026年7月26日。</li>
+        <li><b>自动同步：</b>所有数据操作完成后自动同步到云端，无需手动操作。页面顶部显示同步状态。</li>
+        <li><b>修改密码：</b>在任何页面点击"修改密码"按钮可修改当前登录用户的密码。管理员可在"用户管理"中重置其他用户密码。</li>
+        <li><b>供应商名称修改：</b>在供应商导航页面点击"修改名称"按钮，修改后全局生效。</li>
+      </ol>>
     </div></div>
   </section>
 </main>
 </div>
+
+
+<!-- Password Change Modal -->
+<div id="pwdModal" class="modal-backdrop"><div class="modal rename-modal" style="width:400px">
+  <div class="modal-head"><h3>修改密码</h3><button class="close" onclick="closeModal('pwdModal')">×</button></div>
+  <div class="modal-body">
+    <div class="field"><label class="required">当前密码</label><input id="pwdOld" type="password" class="input"></div>
+    <div class="field"><label class="required">新密码</label><input id="pwdNew" type="password" class="input"></div>
+    <div id="pwdError" style="display:none;color:var(--red);font-size:13px;margin-top:8px"></div>
+  </div>
+  <div class="modal-foot"><button class="btn outline" onclick="closeModal('pwdModal')">取消</button><button class="btn primary" onclick="savePassword()">确认修改</button></div>
+</div></div>
+
+<!-- User Management Modal (admin only) -->
+<div id="userModal" class="modal-backdrop"><div class="modal wide">
+  <div class="modal-head"><h3>用户管理</h3><button class="close" onclick="closeModal('userModal')">×</button></div>
+  <div class="modal-body" id="userModalBody"></div>
+  <div class="modal-foot"><button class="btn primary" onclick="closeModal('userModal')">关闭</button></div>
+</div></div>
 
 <input id="filePicker" class="file-input" type="file" accept=".xlsx,.xls,.csv,.json" onchange="handleFile(this.files[0])">
 
@@ -280,6 +318,7 @@ function loadState(){
     return st;
   }
   var st={orders:[],deliveries:[]};
+  // backward compat: ensure all deliveries have status field
   try{localStorage.setItem(k,JSON.stringify(st))}catch(e){}
   return st;
 }
@@ -288,8 +327,15 @@ function saveState(){
   try{localStorage.setItem(slugKey(currentSupplier.slug),JSON.stringify(state))}catch(e){}
   if(window.__supabaseSync)window.__supabaseSync();
 }
-function orderDeliveries(id){return state.deliveries.filter(d=>d.orderId===id).reduce((a,d)=>a+qty(d.quantity),0)}
-function derived(o){const added=orderDeliveries(o.id);return {...o,deliveredQty:qty(o.baseDeliveredQty)+added,outstandingQty:Math.max(0,qty(o.initialOutstandingQty)-added)}}
+function derived(o){
+  var dels=state.deliveries.filter(d=>d.orderId===o.id);
+  var receivedDels=dels.filter(d=>(d.status||"已收货")==="已收货");
+  var transitDels=dels.filter(d=>d.status==="在途");
+  var deliveredQty=qty(o.baseDeliveredQty)+receivedDels.reduce((s,d)=>s+qty(d.quantity),0);
+  var transitQty=qty(o.transitQty)+transitDels.reduce((s,d)=>s+qty(d.quantity),0);
+  var outstandingQty=Math.max(0,qty(o.purchaseQty)-deliveredQty-transitQty);
+  return Object.assign({},o,{deliveredQty:deliveredQty,transitQty:transitQty,outstandingQty:outstandingQty});
+}
 function materials(){
   const ms=new Map();
   state.orders.forEach(o=>{if(!ms.has(o.materialCode))ms.set(o.materialCode,o.materialName)});
@@ -352,10 +398,16 @@ function loadSuppliers(){
   }).catch(()=>[]);
 }
 function loadAndRenderSuppliers(){
-  loadSuppliers().then(suppliers=>{
+  loadSuppliers().then(sup=>{
+    suppliers=sup;
+    // Show admin button if current user is admin
+    fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser)+"&select=role",{headers:SUPABASE_HDR})
+    .then(r=>{if(!r.ok)return null;return r.json()}).then(u=>{
+      var ab=document.getElementById("adminBtn");if(ab)ab.style.display=(u&&u[0]&&u[0].role==="admin")?"inline-flex":"none";
+    }).catch(()=>{});
     var cards=document.getElementById("supplierCards");
-    if(!suppliers.length){cards.innerHTML='<div class="empty">暂无可访问的供应商。</div>';return}
-    cards.innerHTML=suppliers.map(s=>{
+    if(!sup.length){cards.innerHTML='<div class="empty">暂无可访问的供应商。</div>';return}
+    cards.innerHTML=sup.map(s=>{
       var orders=0;
       try{var st=JSON.parse(localStorage.getItem(slugKey(s.slug)));if(st&&st.orders)orders=st.orders.length}catch(e){}
       return '<div class="supplier-card" onclick="enterSupplier(\''+s.slug+'\')"><h3>'+esc(s.name)+'</h3><p>标识：'+esc(s.slug)+' | 订单数：'+orders+'</p><div class="meta"><button class="btn small outline" onclick="event.stopPropagation();renameSupplierDialog(\''+s.slug+'\',\''+esc(s.name)+'\')">修改名称</button></div></div>';
@@ -378,7 +430,8 @@ function confirmAddSupplier(){
   var name=document.getElementById("newSupplierName").value.trim();
   var slug=document.getElementById("newSupplierSlug").value.trim().replace(/[^a-zA-Z0-9_]/g,"").toLowerCase();
   if(!name){toast("请填写供应商名称","error");return}
-  if(!slug){slug=name.replace(/[^a-zA-Z0-9]/g,"").toLowerCase().slice(0,12);if(!slug)slug="sup"+Date.now().toString(36)}
+  if(!slug){slug=name.replace(/[^a-zA-Z0-9]/g,"").toLowerCase().slice(0,12);if(!slug||slug.length<2)slug="sup"+Date.now().toString(36)}
+  slug=slug.replace(/[^a-z0-9_]/g,"");
   if(slug.length<2){toast("供应商标识至少需要2个英文字符","error");return}
   document.getElementById("newSupplierSlug").value=slug;
   fetch(SUPABASE_URL+"/suppliers",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify({slug:slug,name:name})})
@@ -475,9 +528,9 @@ function renderOrders(){
       var stat=o.outstandingQty>0?'<span class="badge open">有未交</span>':(o.transitQty>0?'<span class="badge transit">在途</span>':'<span class="badge done">已完成</span>');
       var canDelete=!String(o.id).startsWith("excel-");
       var deleteBtn=canDelete?'<button class="btn danger small" onclick="event.stopPropagation();deleteOrder(\''+o.id+'\')">删除订单</button>':"";
-      return '<tr><td class="mono">'+esc(o.poNumber)+'</td><td>'+esc(o.orderDate)+'</td><td class="num">'+fmt(o.purchaseQty)+'</td><td class="num success-text">'+fmt(o.deliveredQty)+'</td><td class="num">'+fmt(o.transitQty)+'</td><td class="num '+((o.outstandingQty>0?"danger-text":"zero"))+'">'+fmt(o.outstandingQty)+'</td><td>'+baseCell(o)+'</td><td>'+stat+'</td><td><div class="progress" title="已交付 '+pct.toFixed(1)+'%"><i style="width:'+pct+'%"></i></div></td><td><div class="order-actions">'+((o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal(\''+o.id+'\')">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'))+deleteBtn+'</div></td></tr>';
+      return '<tr><td class="mono">'+esc(o.poNumber)+'</td><td>'+esc(o.orderDate)+'</td><td class="num">'+fmt(o.purchaseQty)+'</td><td class="num"><span class="clickable-num success-text" onclick="showDeliveryDetail(''+o.id+'','received')">'+fmt(o.deliveredQty)+'</span></td><td class="num"><span class="clickable-num" style="color:var(--orange);cursor:pointer" onclick="showDeliveryDetail(''+o.id+'','transit')">'+fmt(o.transitQty)+'</span></td><td class="num '+((o.outstandingQty>0?"danger-text":"zero"))+'">'+fmt(o.outstandingQty)+'</td><td>'+baseCell(o)+'</td><td>'+stat+'</td><td><div class="progress" title="已交付 '+pct.toFixed(1)+'%"><i style="width:'+pct+'%"></i></div></td><td><div class="order-actions">'+((o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal(\''+o.id+'\')">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'))+deleteBtn+'</div></td></tr>';
     }).join("");
-    box.innerHTML='<div class="material-summary" onclick="toggleMaterial(\''+esc(code)+'\')"><div class="material-title"><strong>'+esc(code)+'</strong><span title="'+esc(g.name)+'">'+esc(g.name)+'</span></div><div class="metric"><small>采购</small><b>'+fmt(sums.p)+'</b></div><div class="metric optional"><small>已交</small><b class="success-text">'+fmt(sums.d)+'</b></div><div class="metric optional"><small>在途</small><b>'+fmt(sums.t)+'</b></div><div class="metric"><small>未交</small><b class="'+(sums.o?"danger-text":"zero")+'">'+fmt(sums.o)+'</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>基地</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    box.innerHTML='<div class="material-summary" onclick="toggleMaterial(\''+esc(code)+'\')"><div class="material-title"><strong>'+esc(code)+'</strong><span title="'+esc(g.name)+'">'+esc(g.name)+'</span></div><div class="metric"><small>采购</small><b>'+fmt(sums.p)+'</b></div><div class="metric optional"><small>已交</small><b class="success-text">'+fmt(sums.d)+'</b></div><div class="metric optional"><small>在途</small><b>'+fmt(sums.t)+'</b></div><div class="metric"><small>未交</small><b class="'+(sums.o?"danger-text":"zero")+'">'+fmt(sums.o)+'</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交 ▾</th><th class="num">在途数量 ▾</th><th class="num">未交数量</th><th>基地</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
     root.appendChild(box);idx++;
   }
 }
@@ -555,8 +608,8 @@ function saveDelivery(){
   q=qty(document.getElementById("dQty").value);var date=document.getElementById("dDate").value;
   if(!o||q<=0||!date){toast("请完整填写交付数量和日期","error");return}
   var x=derived(o);if(q>x.outstandingQty+1e-9){toast("交付数量不能大于当前未交数量 "+fmt(x.outstandingQty),"error");return}
-  state.deliveries.push({id:uid("del"),orderId:o.id,materialCode:o.materialCode,materialName:o.materialName,poNumber:o.poNumber,quantity:q,deliveryDate:date,note:document.getElementById("dNote").value.trim(),source:"手动录入",createdAt:new Date().toLocaleString("zh-CN"),supplier_slug:currentSupplier.slug});
-  saveState();closeModal("deliveryModal");lockedOrderId=null;renderOrders();renderHistory();toast("交付已登记，未交数量已自动减少");
+  state.deliveries.push({id:uid("del"),orderId:o.id,materialCode:o.materialCode,materialName:o.materialName,poNumber:o.poNumber,quantity:q,deliveryDate:date,note:document.getElementById("dNote").value.trim(),source:"手动录入",status:"在途",operator:currentUser||"未知",confirmedAt:null,confirmer:null,createdAt:new Date().toLocaleString("zh-CN"),supplier_slug:currentSupplier.slug});
+  saveState();closeModal("deliveryModal");lockedOrderId=null;renderOrders();renderHistory();toast("交付已登记，进入在途数量。确认收货后转入累计已交");
 }
 
 /* ===== ORDER MODAL ===== */
@@ -606,6 +659,7 @@ function renderHistory(){
 }
 function deleteDelivery(id){
   var d=state.deliveries.find(x=>x.id===id);if(!d)return;
+  if(d.status==="在途"){toast("在途交付不能直接删除，请先确认收货","error");return}
   if(!confirm("确认删除此交付记录？对应采购订单的已交数量将回退。"))return;
   state.deliveries=state.deliveries.filter(x=>x.id!==id);
   saveState();renderAll();toast("交付已删除，数量已回退");
@@ -620,7 +674,8 @@ function clearHistoryFilters(){["historySearch","historyFrom","historyTo"].forEa
 function populateMaterialSelects(){
   var ms=materials();
   var options=ms.map(m=>'<option value="'+esc(m.code)+'">'+esc(m.code)+" | "+esc(m.name)+'</option>').join("");
-  document.getElementById("dMaterial").innerHTML=options;document.getElementById("oMaterial").innerHTML=options;
+  var dm=document.getElementById("dMaterial");if(dm)dm.innerHTML=options;
+  var om=document.getElementById("oMaterial");if(om)om.innerHTML=options;
 }
 
 /* ===== MISC ===== */
@@ -653,7 +708,18 @@ function csvToObjects(text){
   });
 }
 function getVal(row,names){for(var n of names){if(row[n]&&String(row[n]).trim()!=="")return row[n]}return""}
-function normalizeDate(v){if(!v)return"";var s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);if(/^\d{1,2}\/\d{1,2}\/\d{4}/.test(s)){var p=s.split("/");return p[2]+"-"+p[0].padStart(2,"0")+"-"+p[1].padStart(2,"0")}return""}
+function normalizeDate(v){
+  if(!v)return"";
+  var s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}/.test(s)){var p=s.split("/");return p[2]+"-"+p[0].padStart(2,"0")+"-"+p[1].padStart(2,"0")}
+  // Chinese date: 2026年7月26日 or 7月26日
+  var cn=s.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  if(cn)return cn[1]+"-"+cn[2].padStart(2,"0")+"-"+cn[3].padStart(2,"0");
+  var cn2=s.match(/(\d{1,2})月(\d{1,2})日/);
+  if(cn2)return new Date().getFullYear()+"-"+cn2[1].padStart(2,"0")+"-"+cn2[2].padStart(2,"0");
+  return"";
+}
 function importDeliveries(rows){
   var ok=0,errors=[];
   rows.forEach(r=>{
@@ -666,7 +732,7 @@ function importDeliveries(rows){
     var o;if(po)o=state.orders.find(x=>x.poNumber===po);else if(code)o=state.orders.find(x=>x.materialCode===code);
     if(!o){errors.push("未找到匹配订单");return}
     var dx=derived(o);if(q>dx.outstandingQty+1e-9){errors.push("数量超限");return}
-    state.deliveries.push({id:uid("del"),orderId:o.id,materialCode:o.materialCode,materialName:o.materialName,poNumber:o.poNumber,quantity:q,deliveryDate:d,note:note,source:"批量导入",createdAt:new Date().toLocaleString("zh-CN"),supplier_slug:currentSupplier.slug});ok++;
+    state.deliveries.push({id:uid("del"),orderId:o.id,materialCode:o.materialCode,materialName:o.materialName,poNumber:o.poNumber,quantity:q,deliveryDate:d,note:note,source:"批量导入",status:"在途",operator:currentUser||"未知",confirmedAt:null,confirmer:null,createdAt:new Date().toLocaleString("zh-CN"),supplier_slug:currentSupplier.slug});ok++;
   });
   saveState();renderAll();showImportResult(ok,errors);
 }
@@ -710,6 +776,142 @@ function resetAll(){
 }
 function renderAll(){populateMaterialSelects();renderOrders();renderHistory()}
 
+/* ===== EXPAND/COLLAPSE ===== */
+function expandAll(){document.querySelectorAll(".material").forEach(m=>{m.classList.add("open");openMaterials.add(m.dataset.code)})}
+function collapseAll(){document.querySelectorAll(".material").forEach(m=>{m.classList.remove("open");openMaterials.clear()})}
+
+/* ===== DELIVERY DETAIL POPUP ===== */
+function showDeliveryDetail(orderId,type){
+  var o=state.orders.find(x=>x.id===orderId);if(!o)return;
+  var dx=derived(o);
+  var m=document.createElement("div");m.className="modal-backdrop show";m.style.zIndex="110";
+  m.onclick=function(e){if(e.target===this)m.remove()};
+  var title=type==="received"?"累计已交明细 — "+esc(o.poNumber):"在途交付明细 — "+esc(o.poNumber);
+  var dels=type==="received"?state.deliveries.filter(d=>d.orderId===orderId&&(d.status||"已收货")==="已收货"):state.deliveries.filter(d=>d.orderId===orderId&&d.status==="在途");
+  var h='<div class="modal"><div class="modal-head"><h3>'+title+'</h3><button class="close" onclick="this.parentElement.parentElement.parentElement.remove()">×</button></div><div class="modal-body">';
+  if(type==="received"&&o.baseDeliveredQty>0){
+    h+='<div style="padding:8px 0;border-bottom:1px solid #eee;margin-bottom:8px"><b>Excel初始已交：</b>'+fmt(o.baseDeliveredQty)+' <small style="color:var(--muted)">（导入时已有交付量）</small></div>';
+  }
+  if(!dels.length&&!(type==="received"&&o.baseDeliveredQty>0)){h+='<div class="empty">暂无记录</div>'}
+  else{
+    h+='<div style="overflow:auto"><table><thead><tr><th>交付日期</th><th class="num">数量</th><th>录入方式</th><th>操作人</th>';
+    if(type==="received")h+='<th>收货确认时间</th><th>确认人</th>';
+    h+='<th>备注</th>';
+    if(type==="transit")h+='<th>操作</th>';
+    h+='</tr></thead><tbody>';
+    dels.forEach(d=>{
+      h+='<tr><td>'+esc(d.deliveryDate)+'</td><td class="num">'+fmt(d.quantity)+'</td><td>'+esc(d.source||"")+'</td><td>'+esc(d.operator||"未知")+'</td>';
+      if(type==="received")h+='<td>'+esc(d.confirmedAt||"历史数据")+'</td><td>'+esc(d.confirmer||"—")+'</td>';
+      h+='<td>'+esc(d.note||"")+'</td>';
+      if(type==="transit")h+='<td><button class="btn small primary" onclick="confirmReceipt(''+d.id+'')">确认收货</button></td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  h+='</div></div>';
+  m.innerHTML=h;document.body.appendChild(m);
+}
+
+/* ===== CONFIRM RECEIPT ===== */
+function confirmReceipt(deliveryId){
+  var d=state.deliveries.find(x=>x.id===deliveryId);if(!d)return;
+  if(!confirm("确认收货？\n数量："+fmt(d.quantity)+"\n交付日期："+d.deliveryDate))return;
+  d.status="已收货";d.confirmedAt=new Date().toLocaleString("zh-CN");d.confirmer=currentUser||"未知";
+  saveState();renderAll();
+  document.querySelectorAll(".modal-backdrop").forEach(m=>{if(m.id!=="deliveryModal"&&m.id!=="orderModal"&&m.id!=="addSupplierModal"&&m.id!=="renameModal"&&m.id!=="importModal"&&m.id!=="pwdModal"&&m.id!=="userModal")m.remove()});
+  toast("已确认收货，数量转入累计已交");
+}
+
+/* ===== LOGIN/REGISTER ===== */
+function toggleLoginRegister(){
+  var lf=document.getElementById("loginForm"),rf=document.getElementById("registerForm");
+  if(lf.style.display==="none"){lf.style.display="block";rf.style.display="none";document.getElementById("loginTitle").textContent="供应商订单管理系统"}
+  else{lf.style.display="none";rf.style.display="block";document.getElementById("loginTitle").textContent="注册新用户"}
+  document.getElementById("loginError").style.display="none";
+}
+
+function doRegister(){
+  var u=document.getElementById("regUser").value.trim();
+  var n=document.getElementById("regName").value.trim();
+  var p=document.getElementById("regPass").value.trim();
+  if(!u||!p){document.getElementById("loginError").textContent="请填写用户名和密码";document.getElementById("loginError").style.display="block";return}
+  fetch(SUPABASE_URL+"/users",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify({username:u,display_name:n||u,password:p,allowed_suppliers:[],role:"user"})})
+  .then(r=>{if(!r.ok)return r.json().then(err=>{throw Error(err.message||err.code||"HTTP "+r.status)});return r.json()})
+  .then(()=>{toast("注册成功，请登录");toggleLoginRegister();document.getElementById("loginUser").value=u;document.getElementById("loginPass").value=p})
+  .catch(e=>{document.getElementById("loginError").textContent="注册失败："+e.message;document.getElementById("loginError").style.display="block"});
+}
+
+/* ===== PASSWORD CHANGE ===== */
+function changePasswordDialog(){
+  document.getElementById("pwdOld").value="";document.getElementById("pwdNew").value="";
+  document.getElementById("pwdError").style.display="none";
+  document.getElementById("pwdModal").classList.add("show");
+}
+function savePassword(){
+  var oldP=document.getElementById("pwdOld").value.trim();
+  var newP=document.getElementById("pwdNew").value.trim();
+  if(!oldP||!newP){document.getElementById("pwdError").textContent="请填写当前密码和新密码";document.getElementById("pwdError").style.display="block";return}
+  fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser)+"&select=password",{headers:SUPABASE_HDR})
+  .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()})
+  .then(users=>{
+    if(!users||!users.length||users[0].password!==oldP){document.getElementById("pwdError").textContent="当前密码不正确";document.getElementById("pwdError").style.display="block";return}
+    fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser),{method:"PATCH",headers:SUPABASE_HDR,body:JSON.stringify({password:newP})})
+    .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()})
+    .then(()=>{closeModal("pwdModal");toast("密码已修改")})
+    .catch(e=>{document.getElementById("pwdError").textContent="修改失败："+e.message;document.getElementById("pwdError").style.display="block"});
+  }).catch(e=>{document.getElementById("pwdError").textContent="验证失败："+e.message;document.getElementById("pwdError").style.display="block"});
+}
+
+/* ===== ADMIN USER MANAGEMENT ===== */
+function showUserManagement(){
+  if(!currentUser)return;
+  // Check if current user is admin
+  fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser)+"&select=role",{headers:SUPABASE_HDR})
+  .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()})
+  .then(users=>{
+    if(!users||!users[0]||users[0].role!=="admin"){toast("仅管理员可访问此功能","error");return}
+    renderUserManagement();
+  }).catch(e=>toast("无法验证权限："+e.message,"error"));
+}
+function renderUserManagement(){
+  fetch(SUPABASE_URL+"/users?select=username,display_name,role,allowed_suppliers&order=username.asc",{headers:SUPABASE_HDR})
+  .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()})
+  .then(users=>{
+    fetch(SUPABASE_URL+"/suppliers?select=slug,name&order=name.asc",{headers:SUPABASE_HDR})
+    .then(r=>r.json()).then(sups=>{
+      var h='<table><thead><tr><th>用户名</th><th>显示名</th><th>角色</th><th>可访问供应商</th><th>操作</th></tr></thead><tbody>';
+      users.forEach(u=>{
+        var allowed=u.allowed_suppliers||[];
+        var supChecks=sups.map(s=>'<label style="font-size:12px;margin-right:8px"><input type="checkbox" '+((allowed.includes(s.slug))?"checked":"")+' onchange="toggleSupplierAccess(''+u.username+'',''+s.slug+'',this.checked)"> '+esc(s.name)+'</label>').join(" ");
+        h+='<tr><td>'+esc(u.username)+'</td><td>'+esc(u.display_name||"")+'</td><td>'+esc(u.role||"user")+'</td><td>'+supChecks+'</td><td>';
+        if(u.username!=="admin")h+='<button class="btn small outline" onclick="resetUserPassword(''+u.username+'')">重置密码</button>';
+        h+='</td></tr>';
+      });
+      h+='</tbody></table>';
+      document.getElementById("userModalBody").innerHTML=h;
+      document.getElementById("userModal").classList.add("show");
+    });
+  }).catch(e=>toast("加载用户失败："+e.message,"error"));
+}
+function toggleSupplierAccess(username,slug,checked){
+  fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(username)+"&select=allowed_suppliers",{headers:SUPABASE_HDR})
+  .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()})
+  .then(users=>{
+    var allowed=users[0].allowed_suppliers||[];
+    if(checked){if(!allowed.includes(slug))allowed.push(slug)}
+    else{allowed=allowed.filter(s=>s!==slug)}
+    fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(username),{method:"PATCH",headers:SUPABASE_HDR,body:JSON.stringify({allowed_suppliers:allowed})})
+    .then(()=>{toast("权限已更新");renderUserManagement()});
+  });
+}
+function resetUserPassword(username){
+  if(!confirm("确认重置用户 "+username+" 的密码为 123456？"))return;
+  fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(username),{method:"PATCH",headers:SUPABASE_HDR,body:JSON.stringify({password:"123456"})})
+  .then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()})
+  .then(()=>toast("密码已重置为 123456"))
+  .catch(e=>toast("重置失败："+e.message,"error"));
+}
+
 /* ===== SUPABASE CONFIG ===== */
 const SUPABASE_URL="https://ifvzmbomwdupjgikcucy.supabase.co/rest/v1";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
@@ -737,13 +939,15 @@ route();
     try{
       var st2=window.state;
       for(var i=0;i<st2.orders.length;i++){
-        var o=st2.orders[i];o.supplier_slug=slug;if(!o.supplier_name)o.supplier_name=window.currentSupplier.name;
-        await fetch(SUPABASE_URL+"/orders",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(o)});
+        var o=st2.orders[i];if(!o.supplier_slug)o.supplier_slug=slug;if(!o.supplier_name)o.supplier_name=window.currentSupplier.name;
+        var sb={id:o.id,supplier_slug:o.supplier_slug,materialcode:o.materialCode,materialname:o.materialName,ponumber:o.poNumber,orderdate:o.orderDate,purchaseqty:o.purchaseQty,basedeliveredqty:o.baseDeliveredQty,transitqty:o.transitQty,initialoutstandingqty:o.initialOutstandingQty,base:o.base||"",basehistory:o.baseHistory?JSON.stringify(o.baseHistory):"[]",supplier_name:o.supplier_name||"",createdat:o.createdAt||""};
+        await fetch(SUPABASE_URL+"/orders",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(sb)});
       }
       if(st2.deliveries){
         for(var i=0;i<st2.deliveries.length;i++){
-          var d=st2.deliveries[i];d.supplier_slug=slug;
-          await fetch(SUPABASE_URL+"/deliveries",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(d)});
+          var d=st2.deliveries[i];
+          var sb2={id:d.id,supplier_slug:slug,orderid:d.orderId,materialcode:d.materialCode,materialname:d.materialName,ponumber:d.poNumber,quantity:d.quantity,deliverydate:d.deliveryDate,note:d.note||"",source:d.source||"",createdat:d.createdAt||"",status:d.status||"已收货",confirmedat:d.confirmedAt||null,operator:d.operator||null,confirmer:d.confirmer||null};
+          await fetch(SUPABASE_URL+"/deliveries",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(sb2)});
         }
       }
       syncUI("ok","已同步");
@@ -757,8 +961,20 @@ route();
       var d=await(await fetch(SUPABASE_URL+"/deliveries?supplier_slug=eq."+slug+"&select=*",{headers:SUPABASE_HDR})).json();
       if((!o||!o.length)&&(!d||!d.length)){syncUI("ok","就绪");return}
       var st2=window.state;
-      if(o&&o.length){for(var i=0;i<o.length;i++){var idx=st2.orders.findIndex(x=>x.id===o[i].id);if(idx>=0)st2.orders[idx]=o[i];else st2.orders.push(o[i])}}
-      if(d&&d.length){for(var i=0;i<d.length;i++){var idx=st2.deliveries.findIndex(x=>x.id===d[i].id);if(idx>=0)st2.deliveries[idx]=d[i];else st2.deliveries.push(d[i])}}
+      if(o&&o.length){
+        for(var i=0;i<o.length;i++){
+          var r=o[i];
+          var mapped={id:r.id,supplier_slug:r.supplier_slug,materialCode:r.materialcode,materialName:r.materialname,poNumber:r.ponumber,orderDate:r.orderdate,purchaseQty:r.purchaseqty,baseDeliveredQty:r.basedeliveredqty,transitQty:r.transitqty,initialOutstandingQty:r.initialoutstandingqty,base:r.base||"",baseHistory:r.basehistory?(typeof r.basehistory==="string"?JSON.parse(r.basehistory):r.basehistory):[],supplier_name:r.supplier_name||"",createdAt:r.createdat||""};
+          var idx=st2.orders.findIndex(x=>x.id===mapped.id);if(idx>=0)st2.orders[idx]=mapped;else st2.orders.push(mapped);
+        }
+      }
+      if(d&&d.length){
+        for(var i=0;i<d.length;i++){
+          var r2=d[i];
+          var mapped2={id:r2.id,supplier_slug:r2.supplier_slug,orderId:r2.orderid,materialCode:r2.materialcode,materialName:r2.materialname,poNumber:r2.ponumber,quantity:r2.quantity,deliveryDate:r2.deliverydate,note:r2.note||"",source:r2.source||"",createdAt:r2.createdat||"",status:r2.status||"已收货",confirmedAt:r2.confirmedat||null,operator:r2.operator||null,confirmer:r2.confirmer||null};
+          var idx=st2.deliveries.findIndex(x=>x.id===mapped2.id);if(idx>=0)st2.deliveries[idx]=mapped2;else st2.deliveries.push(mapped2);
+        }
+      }
       try{localStorage.setItem(slugKey(slug),JSON.stringify(st2))}catch(e){}
       try{if(typeof renderOrders==="function")renderOrders();if(typeof renderHistory==="function")renderHistory()}catch(e){}
       syncUI("ok","已同步");
