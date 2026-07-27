@@ -248,7 +248,7 @@ function openDeliveryModal(orderId){
     populateMaterialSelects();
     var o=orderId?state.orders.find(function(x){return x.id===orderId}):state.orders.find(function(x){return derived(x).outstandingQty>0});
     
-    if(o){document.getElementById("dMaterial").value=o.materialCode;var dx=derived(o);(function(){var s=document.getElementById("dPo");s.innerHTML="";var t=document.createElement("option");t.value=o.id;t.selected=true;t.textContent=esc(o.poNumber)+"｜"+esc(o.orderDate)+"｜未交 "+fmt(dx.outstandingQty);s.appendChild(t)})();showOrderBalance()}
+    if(o){document.getElementById("dMaterial").value=o.materialCode;var dx=derived(o);var s=document.getElementById("dPo");s.innerHTML="<option value=\""+o.id+"\" selected>"+esc(o.poNumber)+"｜"+esc(o.orderDate)+"｜未交 "+fmt(dx.outstandingQty)+"</option>";showOrderBalance()}
     document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
 }catch(e){toast("打开失败:"+e.message,"error")}}
