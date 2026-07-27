@@ -233,7 +233,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   <div class="modal-head"><h3>新增供应商</h3><button class="close" onclick="closeModal('addSupplierModal')">×</button></div>
   <div class="modal-body">
     <div class="field"><label class="required">供应商名称</label><input id="newSupplierName" class="input" placeholder="例如：某某线材有限公司"></div>
-    <div class="field"><label class="required">供应商标识（英文缩写）</label><input id="newSupplierSlug" class="input" placeholder="例如：mmyx（用于数据隔离，创建后不可修改）"></div>
+    <div class="field"><label>供应商标识（可选，留空自动生成）</label><input id="newSupplierSlug" class="input" placeholder="仅限英文/数字/下划线，如：mmyx"></div>
     <div class="help">创建供应商后，可通过导入采购订单数据来建立订单管理页面。不同供应商的数据完全独立。</div>
   </div>
   <div class="modal-foot"><button class="btn outline" onclick="closeModal('addSupplierModal')">取消</button><button class="btn primary" onclick="confirmAddSupplier()">创建供应商</button></div>
@@ -377,9 +377,12 @@ function addSupplierDialog(){
 function confirmAddSupplier(){
   var name=document.getElementById("newSupplierName").value.trim();
   var slug=document.getElementById("newSupplierSlug").value.trim().replace(/[^a-zA-Z0-9_]/g,"").toLowerCase();
-  if(!name||!slug){toast("请填写供应商名称和标识","error");return}
-  fetch(SUPABASE_URL+"/suppliers",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify({slug:slug,name:name,created_at:new Date().toISOString()})})
-  .then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(()=>{
+  if(!name){toast("请填写供应商名称","error");return}
+  if(!slug){slug=name.replace(/[^a-zA-Z0-9]/g,"").toLowerCase().slice(0,12);if(!slug)slug="sup"+Date.now().toString(36)}
+  if(slug.length<2){toast("供应商标识至少需要2个英文字符","error");return}
+  document.getElementById("newSupplierSlug").value=slug;
+  fetch(SUPABASE_URL+"/suppliers",{method:"POST",headers:Object.assign({},SUPABASE_HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify({slug:slug,name:name})})
+  .then(r=>{if(!r.ok)return r.json().then(err=>{throw Error(err.message||err.code||"HTTP "+r.status)});return r.json()}).then(()=>{
     closeModal("addSupplierModal");toast("供应商已创建："+name);
     if(currentUser){
       fetch(SUPABASE_URL+"/users?username=eq."+encodeURIComponent(currentUser)+"&select=allowed_suppliers",{headers:SUPABASE_HDR})
