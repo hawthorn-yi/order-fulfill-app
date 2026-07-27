@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>供应商订单与交付管理</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f3f6fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#dfe5ef;--brand:#165dff;--brand2:#0b47ca;--green:#0e9f6e;--orange:#f79009;--red:#e5484d;--nav:#12213d;--shadow:0 8px 24px rgba(25,45,80,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:14px}
@@ -176,7 +176,7 @@ function baseCell(o){const b=o.base||"";return`<span class="base-link" onclick="
 }
 function editBase(id){const o=state.orders.find(x=>x.id===id);if(!o)return;const bb=o.base||"";const m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};m.innerHTML=`<div class="modal" style="width:350px"><div class="modal-head"><h3>选择基地 - ${esc(o.poNumber)}</h3><button class="close" onclick="this.closest('.modal-backdrop').remove()">×</button></div><div class="modal-body">${BASES.map(v=>'<div style="padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0'+(bb===v?';background:var(--brand);color:#fff':';background:#f3f6fb')+'" onclick="confirmBase(\''+id+'\',\''+v+'\')">'+v+(bb===v?' ✓':'')+'</div>').join("")}<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px">当前基地: <strong>${esc(bb)||"未设置"}</strong></div></div></div>";document.body.appendChild(m);
 }
-function confirmBase(id,v){const o=state.orders.find(x=>x.id===id);if(!o)return;if(o.base===v){document.querySelectorAll(".modal-backdrop").forEach(x=>x.remove());return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();document.querySelectorAll(".modal-backdrop").forEach(x=>x.remove());toast("基地已更改为 "+v);}
+function confirmBase(id,v){var o=state.orders.find(function(x){return x.id===id});if(!o)return;if(o.base===v){var ms=document.querySelectorAll(".modal-backdrop");for(var i=0;i<ms.length;i++)ms[i].remove();return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();var ms=document.querySelectorAll(".modal-backdrop");for(var i=0;i<ms.length;i++)ms[i].remove();toast("基地已更改为 "+v);}
 function today(){return new Date().toISOString().slice(0,10)}
 function qty(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function fmt(v){return nf.format(qty(v))}
