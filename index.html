@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>供应商订单与交付管理</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><!-- Supabase REST API used directly (no CDN client needed) -->
 <style>
 :root{--bg:#f3f6fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#dfe5ef;--brand:#165dff;--brand2:#0b47ca;--green:#0e9f6e;--orange:#f79009;--red:#e5484d;--nav:#12213d;--shadow:0 8px 24px rgba(25,45,80,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:14px}
@@ -2338,7 +2338,6 @@ renderAll();
 (function() {
   var URL = 'https://ifvzmbomwdupjgikcucy.supabase.co';
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A';
-  var client = null;
   var status = 'connecting';
   var timer = null;
 
@@ -2347,9 +2346,6 @@ renderAll();
   function conn(){ui('connected','云端已连接')}
   function connErr(e){ui('error','同步失败: '+e)}
 
-  if(typeof supabase!=='undefined'&&supabase.createClient){
-    client=supabase.createClient(URL,KEY,{auth:{persistSession:false},realtime:{enabled:true}})
-  }
 
   var HDR={apikey:KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
 
@@ -2370,10 +2366,7 @@ renderAll();
       if(Array.isArray(st.deliveries))st.deliveries.forEach(function(d){all.push({table:'deliveries',row:d})});
       if(Array.isArray(st.transitHistory))st.transitHistory.forEach(function(t){all.push({table:'transit_history',row:t})});
       for(var i=0;i<all.length;i++){
-        try{
-          if(client){await client.from(all[i].table).upsert(all[i].row,{onConflict:'id'})}
-          else{await rest(all[i].table,{method:'POST',body:JSON.stringify(all[i].row),headers:Object.assign({},HDR,{'Prefer':'resolution=merge-duplicates'})})}
-        }catch(e){}
+        try{await rest(all[i].table,{method:'POST',body:JSON.stringify(all[i].row),headers:Object.assign({},HDR,{'Prefer':'resolution=merge-duplicates'})})}catch(e){}
       }
       conn()
     }catch(e){connErr(e.message)}
@@ -2384,8 +2377,7 @@ renderAll();
       var st=typeof window.state!=='undefined'?window.state:null;
       if(!st)return;
       var o,d,t;
-      if(client){var r1=await client.from('orders').select('*');if(!r1.error)o=r1.data;var r2=await client.from('deliveries').select('*');if(!r2.error)d=r2.data;var r3=await client.from('transit_history').select('*');if(!r3.error)t=r3.data}
-      else{try{o=await rest('orders?select=*')}catch(e){}try{d=await rest('deliveries?select=*')}catch(e){}try{t=await rest('transit_history?select=*')}catch(e){}}
+      try{o=await rest('orders?select=*')}catch(e){} try{d=await rest('deliveries?select=*')}catch(e){} try{t=await rest('transit_history?select=*')}catch(e){}
       if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){conn();return}
       if(o&&o.length){o.forEach(function(co){var idx=st.orders.findIndex(function(x){return x.id===co.id});if(idx>=0)st.orders[idx]=co;else st.orders.push(co)})}
       if(d&&d.length){d.forEach(function(cd){var idx=st.deliveries.findIndex(function(x){return x.id===cd.id});if(idx>=0)st.deliveries[idx]=cd;else st.deliveries.push(cd)})}
@@ -2404,9 +2396,6 @@ renderAll();
   setTimeout(function(){syncDown().catch(function(e){connErr(e.message)})},2000);
   setInterval(function(){if(status!=='error')syncDown()},30000);
 
-  if(client&&client.channel){
-    try{var ch=client.channel('db-changes');ch.on('postgres_changes',{event:'*',schema:'public'},function(){setTimeout(syncDown,1500)});ch.subscribe()}catch(e){}
-  }
 })();
 </script></body>
 </html>
