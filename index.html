@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <button class="tab active" data-tab="orders" onclick="switchTab('orders')">订单总览</button>
     <button class="tab" data-tab="history" onclick="switchTab('history')">交付履历</button>
     <button class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">供应商管理</button>
-    <button class="tab" data-tab="users" id="adminTab" onclick="switchTab('users')">用户管理</button>
+    <button class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">供应商管理</button>
     <button class="tab" data-tab="guide" onclick="switchTab('guide')">使用说明</button>
   </nav>
 
@@ -59,8 +59,8 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <div class="kpis">
       <div class="kpi gray"><div class="label">物料种类</div><div class="value" id="kMaterials">0</div></div>
       <div class="kpi blue"><div class="label">采购总数量</div><div class="value" id="kPurchase">0</div></div>
-      <div class="kpi green clickable" title="点击查看所有物料累计已交付履历" onclick="openKpiFlowHistory('delivered')"><div class="label">累计已交付<small>点击查看</small></div><div class="value" id="kDelivered">0</div></div>
-      <div class="kpi orange clickable" title="点击查看所有物料在途交付履历" onclick="openKpiFlowHistory('transit')"><div class="label">在途数量<small>点击查看</small></div><div class="value" id="kTransit">0</div></div>
+      <div class="kpi green clickable" title="点击查看履历" onclick="openKpiFlowHistory('delivered')"><div class="label">累计已交付<small>点击查看</small></div><div class="value" id="kDelivered">0</div></div>
+      <div class="kpi orange clickable" title="点击查看履历" onclick="openKpiFlowHistory('transit')"><div class="label">在途数量<small>点击查看</small></div><div class="value" id="kTransit">0</div></div>
       <div class="kpi red"><div class="label">未交数量</div><div class="value" id="kOutstanding">0</div></div>
     </div>
     <div class="panel">
@@ -110,19 +110,6 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     </div>
   </section>
 
-  <section id="tab-users">
-    <div class="panel">
-      <div class="panel-head"><h2>用户管理</h2><div><button class="btn primary small" onclick="openUserModal()">+ 新增用户</button><button class="btn outline small" onclick="syncUsersFromSupabase()">同步</button></div></div>
-      <div class="panel-body">
-        <div class="admin-table-wrap"><table>
-          <thead><tr><th>用户名</th><th>角色</th><th>供应商权限</th><th>创建时间</th><th>操作</th></tr></thead>
-          <tbody id="userManagementBody"></tbody>
-        </table></div>
-        <div id="userManagementEmpty" class="empty" style="display:none">暂无用户数据。</div>
-      </div>
-    </div>
-  </section>
-
   <section id="tab-guide" style="display:none">
     <div class="panel"><div class="panel-head"><h2>使用说明</h2></div><div class="panel-body" style="line-height:1.9">
       <ol>
@@ -137,6 +124,25 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   </section>
 </main>
 </div>
+
+<div id="supplierModal" class="modal-backdrop"><div class="modal">
+  <div class="modal-head"><h3 id="supplierModalTitle">新增供应商</h3><button class="close" onclick="closeModal('supplierModal')">x</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="supplierEditId">
+    <div class="form-grid">
+      <div class="field"><label class="required">供应商编码</label><input id="supplierCode" class="input" placeholder="如 SUP001"></div>
+      <div class="field"><label class="required">供应商名称</label><input id="supplierName" class="input" placeholder="供应商名称"></div>
+      <div class="field"><label>联系人</label><input id="supplierContact" class="input"></div>
+      <div class="field"><label>电话</label><input id="supplierPhone" class="input"></div>
+      <div class="field span2"><label>地址</label><input id="supplierAddress" class="input"></div>
+      <div class="field span2"><label>备注</label><textarea id="supplierNotes" class="input" rows="2"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn outline" onclick="closeModal('supplierModal')">取消</button>
+    <button class="btn primary" onclick="saveSupplier()">保存</button>
+  </div>
+</div></div>
 
 <input id="filePicker" class="file-input" type="file" accept=".xlsx,.xls,.csv,.json" onchange="handleFile(this.files[0])">
 
@@ -165,7 +171,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
       <div class="field"><label class="required">采购单号</label><input id="oPo" class="input"></div>
       <div class="field"><label class="required">下单日期</label><input id="oDate" type="date" class="input"></div>
       <div class="field"><label class="required">采购数量</label><input id="oQty" type="number" min="0.000001" step="any" class="input"></div>
-      <div class="field"><label>在途数量</label><input id="oTransit" type="number" min="0" step="any" value="0" class="input"></div>
+      <div class="field"><label>初始在途数量</label><input id="oTransit" type="number" min="0" step="any" value="0" class="input"></div>
       <div class="field span2"><div class="help">新增订单的初始未交数量 = 采购数量 − 初始在途数量。初始在途数量不能超过采购数量。</div></div>
     </div>
   </div>
@@ -185,10 +191,14 @@ const STORAGE_KEY = "supplier_order_delivery_manager_v1";
 let state = loadState();
 let fileMode = "";
 let openMaterials = new Set();
-var SUPABASE_URL="https://ifvzmbomwdupjgikcucy.supabase.co";
-var SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
-var SUPABASE_HDR={apikey:SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"};
-async function supabaseRest(method,table,body,query){var url=SUPABASE_URL+"/rest/v1/"+table+(query||"");var opts={method:method,headers:Object.assign({},SUPABASE_HDR)};if(body){opts.body=JSON.stringify(body);opts.headers["Prefer"]="return=representation"}var resp=await fetch(url,opts);var text=await resp.text();try{return JSON.parse(text)}catch(e){throw new Error(text||resp.status+"")}}
+var SUPABASE_URL2="https://ifvzmbomwdupjgikcucy.supabase.co",SUPABASE_KEY2="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
+function loadSuppliersFromSupabase(){var h={apikey:SUPABASE_KEY2,"Authorization":"Bearer "+SUPABASE_KEY2,"Content-Type":"application/json"};fetch(SUPABASE_URL2+"/rest/v1/suppliers?select=*&order=created_at.desc",{headers:h}).then(function(r){return r.json()}).then(function(d){window._suppliers=d||[];renderSuppliers()}).catch(function(){window._suppliers=window._suppliers||[];renderSuppliers()})}
+function renderSuppliers(){var b=document.getElementById("supplierBody");var e=document.getElementById("supplierEmpty");if(!b)return;var s=window._suppliers||[];if(!s.length){b.innerHTML="";e.style.display="block";return}e.style.display="none";b.innerHTML=s.map(function(x){return'<tr><td class="mono">'+esc(x.code)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.contact||"")+'</td><td>'+esc(x.phone||"")+'</td><td>'+esc(x.address||"")+'</td><td>'+esc(x.notes||"")+'</td><td><button class="btn outline small" onclick="editSupplier(\''+x.id+'\')">编辑</button> <button class="btn danger small" onclick="deleteSupplier(\''+x.id+'\')">删除</button></td></tr>'}).join("")}
+function openSupplierModal(id){if(id){var s=(window._suppliers||[]).find(function(x){return x.id===id});if(!s)return;document.getElementById("supplierModalTitle").textContent="编辑供应商";document.getElementById("supplierEditId").value=s.id;document.getElementById("supplierCode").value=s.code||"";document.getElementById("supplierName").value=s.name||"";document.getElementById("supplierContact").value=s.contact||"";document.getElementById("supplierPhone").value=s.phone||"";document.getElementById("supplierAddress").value=s.address||"";document.getElementById("supplierNotes").value=s.notes||""}else{document.getElementById("supplierModalTitle").textContent="新增供应商";document.getElementById("supplierEditId").value="";document.getElementById("supplierCode").value="";document.getElementById("supplierName").value="";document.getElementById("supplierContact").value="";document.getElementById("supplierPhone").value="";document.getElementById("supplierAddress").value="";document.getElementById("supplierNotes").value=""}document.getElementById("supplierModal").classList.add("show")}
+function editSupplier(id){openSupplierModal(id)}
+function saveSupplier(){var eid=document.getElementById("supplierEditId").value;var code=document.getElementById("supplierCode").value.trim();var name=document.getElementById("supplierName").value.trim();if(!code||!name){toast("请填写供应商编码和名称","error");return}var h={apikey:SUPABASE_KEY2,"Authorization":"Bearer "+SUPABASE_KEY2,"Content-Type":"application/json","Prefer":"return=representation"};var data={code:code,name:name,contact:document.getElementById("supplierContact").value.trim(),phone:document.getElementById("supplierPhone").value.trim(),address:document.getElementById("supplierAddress").value.trim(),notes:document.getElementById("supplierNotes").value.trim()};var m=eid?"PATCH":"POST";var u=SUPABASE_URL2+"/rest/v1/suppliers"+(eid?"?id=eq."+encodeURIComponent(eid):"");fetch(u,{method:m,headers:h,body:JSON.stringify(data)}).then(function(){closeModal("supplierModal");loadSuppliersFromSupabase();toast(eid?"供应商已更新":"供应商已创建")}).catch(function(e){toast("保存失败："+(e.message||e),"error")})}
+function deleteSupplier(id){if(!confirm("确认删除该供应商吗？"))return;var h={apikey:SUPABASE_KEY2,"Authorization":"Bearer "+SUPABASE_KEY2,"Content-Type":"application/json"};fetch(SUPABASE_URL2+"/rest/v1/suppliers?id=eq."+encodeURIComponent(id),{method:"DELETE",headers:h}).then(function(){loadSuppliersFromSupabase();toast("供应商已删除")}).catch(function(e){toast("删除失败："+(e.message||e),"error")})}
+const nf = new Intl.NumberFormat("zh-CN",{maximumFractionDigits:3});
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function loadState(){
@@ -216,7 +226,7 @@ function toast(msg,type="success"){
   clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.className="toast",3500);
 }
 function switchTab(name){
-  ["orders","history","suppliers","users","guide"].forEach(x=>{document.getElementById("tab-"+x).style.display=x===name?"":"none";document.querySelector('[data-tab="'+x+'"]').classList.toggle("active",x===name)});
+  ["orders","history","suppliers","guide"].forEach(x=>{document.getElementById("tab-"+x).style.display=x===name?"":"none";document.querySelector('[data-tab="'+x+'"]').classList.toggle("active",x===name)});
   if(name==="history")renderHistory();
   if(name==="suppliers")renderSuppliers();
 }
@@ -419,14 +429,8 @@ function resetAll(){
   if(!confirm("确认清除所有新增订单与交付履历，并恢复为上传Excel的原始数据吗？此操作不可撤销。"))return;
   state=clone(SEED);saveState();openMaterials.clear();renderAll();toast("已恢复原始Excel数据");
 }
-function loadSuppliersFromSupabase(){supabaseRest("GET","suppliers",null,"?select=*&order=created_at.desc").then(function(data){window._suppliers=data||[];renderSuppliers()}).catch(function(){window._suppliers=window._suppliers||[];renderSuppliers()})}
-function renderSuppliers(){var b=document.getElementById("supplierBody");var e=document.getElementById("supplierEmpty");if(!b)return;var s=window._suppliers||[];if(!s.length){b.innerHTML="";e.style.display="block";return}e.style.display="none";b.innerHTML=s.map(function(x){return'<tr><td class="mono">'+esc(x.code)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.contact||"")+'</td><td>'+esc(x.phone||"")+'</td><td>'+esc(x.address||"")+'</td><td>'+esc(x.notes||"")+'</td><td><button class="btn outline small" onclick="editSupplier(\''+x.id+'\')">编辑</button> <button class="btn danger small" onclick="deleteSupplier(\''+x.id+'\')">删除</button></td></tr>'}).join("")}
-function openSupplierModal(id){if(id){var s=(window._suppliers||[]).find(function(x){return x.id===id});if(!s)return;document.getElementById("supplierModalTitle").textContent="编辑供应商";document.getElementById("supplierEditId").value=s.id;document.getElementById("supplierCode").value=s.code||"";document.getElementById("supplierName").value=s.name||"";document.getElementById("supplierContact").value=s.contact||"";document.getElementById("supplierPhone").value=s.phone||"";document.getElementById("supplierAddress").value=s.address||"";document.getElementById("supplierNotes").value=s.notes||""}else{document.getElementById("supplierModalTitle").textContent="新增供应商";document.getElementById("supplierEditId").value="";document.getElementById("supplierCode").value="";document.getElementById("supplierName").value="";document.getElementById("supplierContact").value="";document.getElementById("supplierPhone").value="";document.getElementById("supplierAddress").value="";document.getElementById("supplierNotes").value=""}document.getElementById("supplierModal").classList.add("show")}
-function editSupplier(id){openSupplierModal(id)}
-async function saveSupplier(){var eid=document.getElementById("supplierEditId").value;var code=document.getElementById("supplierCode").value.trim();var name=document.getElementById("supplierName").value.trim();if(!code||!name){toast("请填写供应商编码和名称","error");return}var data={code:code,name:name,contact:document.getElementById("supplierContact").value.trim(),phone:document.getElementById("supplierPhone").value.trim(),address:document.getElementById("supplierAddress").value.trim(),notes:document.getElementById("supplierNotes").value.trim()};try{if(eid){await supabaseRest("PATCH","suppliers",data,"?id=eq."+encodeURIComponent(eid))}else{await supabaseRest("POST","suppliers",data)}closeModal("supplierModal");loadSuppliersFromSupabase();toast(eid?"供应商已更新":"供应商已创建")}catch(e){toast("保存失败："+(e.message||e),"error")}}
-async function deleteSupplier(id){if(!confirm("确认删除该供应商吗？"))return;try{await supabaseRest("DELETE","suppliers",null,"?id=eq."+encodeURIComponent(id));loadSuppliersFromSupabase();toast("供应商已删除")}catch(e){toast("删除失败："+(e.message||e),"error")}}
 function renderAll(){populateMaterialSelects();renderOrders();renderHistory();loadSuppliersFromSupabase()}
-  document.querySelectorAll(".modal-backdrop").forEach(x=>x.addEventListener("click",e=>{if(e.target===x)x.classList.remove("show")}));
+document.querySelectorAll(".modal-backdrop").forEach(x=>x.addEventListener("click",e=>{if(e.target===x)x.classList.remove("show")}));
 renderAll();
 </script>
 <!-- 供应商订单与交付管理：完整合并修正版 -->
