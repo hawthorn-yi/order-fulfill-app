@@ -216,8 +216,9 @@ function toast(msg,type="success"){
   clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.className="toast",3500);
 }
 function switchTab(name){
-  ["orders","history","guide"].forEach(x=>{document.getElementById("tab-"+x).style.display=x===name?"":"none";document.querySelector(`[data-tab="${x}"]`).classList.toggle("active",x===name)});
+  ["orders","history","suppliers","users","guide"].forEach(x=>{document.getElementById("tab-"+x).style.display=x===name?"":"none";document.querySelector('[data-tab="'+x+'"]').classList.toggle("active",x===name)});
   if(name==="history")renderHistory();
+  if(name==="suppliers")renderSuppliers();
 }
 function renderKPIs(){
   const os=state.orders.map(derived), codes=new Set(os.map(o=>o.materialCode));
