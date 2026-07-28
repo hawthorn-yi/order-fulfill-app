@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>供应商订单与交付管理</title>
-<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f3f6fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#dfe5ef;--brand:#165dff;--brand2:#0b47ca;--green:#0e9f6e;--orange:#f79009;--red:#e5484d;--nav:#12213d;--shadow:0 8px 24px rgba(25,45,80,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:14px}
@@ -24,41 +24,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 .dropdown{position:relative}.menu{display:none;position:absolute;right:0;top:44px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);min-width:190px;overflow:hidden;z-index:30}.menu.show{display:block}.menu button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:11px 14px;cursor:pointer;color:#26344e}.menu button:hover{background:#f3f6fb}.file-input{display:none}.import-result{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:7px;margin-top:12px}.import-result div{padding:7px 10px;border-bottom:1px solid #eee}.import-result div:last-child{border:0}
 @media(max-width:1050px){.kpis{grid-template-columns:repeat(2,1fr)}.filters,.history-tools{grid-template-columns:1fr 1fr}.material-summary{grid-template-columns:minmax(220px,2fr) repeat(2,1fr) 28px}.material-summary .optional{display:none}}
 @media(max-width:650px){.topbar{position:static;padding:15px;align-items:flex-start;flex-direction:column}.container{padding:13px}.kpis{grid-template-columns:1fr}.filters,.history-tools,.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.material-summary{grid-template-columns:1fr 1fr 24px}.material-summary .metric:nth-of-type(2),.material-summary .metric:nth-of-type(3),.material-summary .metric:nth-of-type(4){display:none}.tabs{overflow:auto}.top-actions{width:100%}}
-
-/* Auth */
-.auth-page{display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f1d36,#1a3357);padding:20px}
-.auth-page.show{display:flex}
-.auth-container{background:#fff;border-radius:14px;box-shadow:0 24px 64px rgba(0,0,0,.35);width:min(420px,100%);overflow:hidden}
-.auth-header{background:linear-gradient(120deg,#12213d,#173666);color:#fff;padding:28px 30px 22px;text-align:center}
-.auth-header h2{margin:0 0 6px;font-size:22px}
-.auth-header p{color:#c9d6ed;margin:0;font-size:13px}
-.auth-body{padding:28px 30px}
-.auth-body .field{margin-bottom:16px}
-.auth-body .btn{width:100%;padding:12px;font-size:15px;margin-top:6px}
-.auth-switch{text-align:center;margin-top:16px;color:var(--muted);font-size:13px}
-.auth-switch a{color:var(--brand);cursor:pointer;text-decoration:underline;font-weight:600}
-.auth-error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:10px 13px;font-size:13px;margin-bottom:14px;display:none}
-.auth-error.show{display:block}
-/* Supplier */
-.supplier-table-wrap{overflow:auto;max-height:60vh}
-.supplier-table-wrap table{min-width:800px}
-.supplier-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#eef2f7;color:#536078}
-/* Admin */
-.admin-table-wrap{overflow:auto;max-height:50vh}
-.admin-table-wrap table{min-width:700px}
-.user-role{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
-.user-role.admin{background:#fef3c7;color:#92400e}
-.user-role.viewer{background:#e8f0ff;color:#2458bd}
-/* KPI clickable */
-.kpi.clickable{cursor:pointer;transition:transform .12s,box-shadow .12s}
-.kpi.clickable:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(25,45,80,.15)}
-.kpi.clickable .value{text-decoration:underline;text-underline-offset:4px}
-.kpi .label small{color:#99a5ba;font-weight:400;font-size:11px;margin-left:4px}
-/* User info topbar */
-.user-info{display:flex;align-items:center;gap:10px;font-size:13px}
-.user-info .user-role-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(255,255,255,.18)}
 </style>
-
 </head>
 <body>
 <div class="auth-page show" id="authPage">
@@ -66,28 +32,25 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   <div class="auth-header"><h2 id="authTitle">供应商订单与交付管理</h2><p id="authSubtitle">请登录以继续</p></div>
   <div class="auth-body">
     <div class="auth-error" id="authError"></div>
-    <div class="field"><label>用户名</label><input id="authUsername" class="input" placeholder="两次密码不一致" autocomplete="username"></div>
-    <div class="field"><label>密码</label><input id="authPassword" class="input" type="password" placeholder="创建新账户" autocomplete="current-password"></div>
+    <div class="field"><label>用户名</label><input id="authUsername" class="input" placeholder="请输入用户名" autocomplete="username"></div>
+    <div class="field"><label>密码</label><input id="authPassword" class="input" type="password" placeholder="请输入密码" autocomplete="current-password"></div>
     <div class="field" id="authConfirmField" style="display:none"><label>确认密码</label><input id="authConfirm" class="input" type="password" placeholder="请再次输入密码"></div>
     <button class="btn primary" id="authSubmitBtn" onclick="handleAuth()">登 录</button>
     <div class="auth-switch" id="authSwitch">还没有账户？<a onclick="toggleAuthMode()">立即注册</a></div>
   </div>
 </div>
 </div>
-
 <div class="app" id="mainApp" style="display:none">
 <header class="topbar">
   <div class="brand"><h1>供应商订单与交付管理</h1><small>采购订单 · 在途 · 未交 · 交付履历</small></div>
-  <span class="user-info" id="userInfoDisplay"></span>
-    <div class="top-actions">
+  <div class="top-actions">
     <button class="btn ghost" onclick="openDeliveryModal()">＋ 登记交付</button>
-    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步</button>
+    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步中...</button>
     <div class="dropdown"><button class="btn primary" onclick="toggleMenu(event)">导入 / 导出 ▾</button>
       <div id="ioMenu" class="menu">
         <button onclick="pickFile('delivery')">导入交付记录</button>
         <button onclick="pickFile('order')">导入采购订单</button>
         <button onclick="downloadDeliveryTemplate()">下载交付导入模板</button>
-        <button onclick="downloadOrderTemplate()">下载采购订单模板</button>
         <button onclick="exportWorkbook()">导出当前数据</button>
         <button onclick="exportBackup()">备份数据（JSON）</button>
         <button onclick="pickFile('backup')">恢复备份</button>
@@ -97,8 +60,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   </div>
 </header>
 <main class="container">
-  <nav class="tabs">
-  <nav class="tabs">
+    <nav class="tabs">
     <button class="tab active" data-tab="orders" onclick="switchTab('orders')">订单总览</button>
     <button class="tab" data-tab="history" onclick="switchTab('history')">交付履历</button>
     <button class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">供应商管理</button>
@@ -148,8 +110,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     </div>
   </section>
 
-  
-  <section id="tab-suppliers" style="display:none">
+<section id="tab-suppliers" style="display:none">
     <div class="panel">
       <div class="panel-head"><h2>供应商管理</h2><button class="btn primary small" onclick="openSupplierModal()">+ 新增供应商</button></div>
       <div class="panel-body">
@@ -161,9 +122,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
       </div>
     </div>
   </section>
-  
 
-  
   <section id="tab-users" style="display:none">
     <div class="panel">
       <div class="panel-head"><h2>用户管理</h2><div><button class="btn primary small" onclick="openUserModal()">+ 新增用户</button><button class="btn outline small" onclick="syncUsersFromSupabase()">同步</button></div></div>
@@ -176,7 +135,6 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
       </div>
     </div>
   </section>
-  
 
   <section id="tab-guide" style="display:none">
     <div class="panel"><div class="panel-head"><h2>使用说明</h2></div><div class="panel-body" style="line-height:1.9">
@@ -192,57 +150,6 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   </section>
 </main>
 </div>
-
-
-<div id="supplierModal" class="modal-backdrop"><div class="modal">
-  <div class="modal-head"><h3 id="supplierModalTitle">新增供应商</h3><button class="close" onclick="closeModal('supplierModal')">x</button></div>
-  <div class="modal-body">
-    <input type="hidden" id="supplierEditId">
-    <div class="form-grid">
-      <div class="field"><label class="required">供应商编码</label><input id="supplierCode" class="input" placeholder="如 SUP001"></div>
-      <div class="field"><label class="required">供应商名称</label><input id="supplierName" class="input" placeholder="供应商名称"></div>
-      <div class="field"><label>联系人</label><input id="supplierContact" class="input"></div>
-      <div class="field"><label>电话</label><input id="supplierPhone" class="input"></div>
-      <div class="field span2"><label>地址</label><input id="supplierAddress" class="input"></div>
-      <div class="field span2"><label>备注</label><textarea id="supplierNotes" class="input" rows="2"></textarea></div>
-    </div>
-  </div>
-  <div class="modal-foot">
-    <button class="btn outline" onclick="closeModal('supplierModal')">取消</button>
-    <button class="btn primary" onclick="saveSupplier()">保存</button>
-  </div>
-</div></div>
-
-<div id="userModal" class="modal-backdrop"><div class="modal">
-  <div class="modal-head"><h3 id="userModalTitle">新增用户</h3><button class="close" onclick="closeModal('userModal')">x</button></div>
-  <div class="modal-body">
-    <input type="hidden" id="userEditId">
-    <div class="form-grid">
-      <div class="field"><label class="required">用户名</label><input id="userEditUsername" class="input" placeholder="用户名"></div>
-      <div class="field"><label class="required">密码</label><input id="userEditPassword" class="input" type="password" placeholder="密码，至少4位"></div>
-      <div class="field"><label>角色</label><select id="userEditRole" class="input"><option value="viewer">供应商（viewer）</option><option value="admin">管理员（admin）</option></select></div>
-      <div class="field"><label>供应商权限</label><input id="userEditSupplierCodes" class="input" placeholder="可查看的供应商编码，逗号分隔，留空=全部"></div>
-    </div>
-  </div>
-  <div class="modal-foot">
-    <button class="btn outline" onclick="closeModal('userModal')">取消</button>
-    <button class="btn primary" onclick="saveUser()">保存</button>
-  </div>
-</div></div>
-
-<div id="resetPwdModal" class="modal-backdrop"><div class="modal">
-  <div class="modal-head"><h3>重置密码</h3><button class="close" onclick="closeModal('resetPwdModal')">x</button></div>
-  <div class="modal-body">
-    <input type="hidden" id="resetPwdTargetUser">
-    <div class="field"><label id="resetPwdLabel">为用户重置密码</label></div>
-    <div class="field"><label>新密码</label><input id="resetPwdNew" class="input" type="password" placeholder="输入新密码，至少4位"></div>
-  </div>
-  <div class="modal-foot">
-    <button class="btn outline" onclick="closeModal('resetPwdModal')">取消</button>
-    <button class="btn primary" onclick="resetUserPassword()">确认重置</button>
-  </div>
-</div></div>
-
 
 <input id="filePicker" class="file-input" type="file" accept=".xlsx,.xls,.csv,.json" onchange="handleFile(this.files[0])">
 
@@ -271,9 +178,8 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
       <div class="field"><label class="required">采购单号</label><input id="oPo" class="input"></div>
       <div class="field"><label class="required">下单日期</label><input id="oDate" type="date" class="input"></div>
       <div class="field"><label class="required">采购数量</label><input id="oQty" type="number" min="0.000001" step="any" class="input"></div>
-      <div class="field"><label>初始在途数量</label><input id="oTransit" type="number" min="0" step="any" value="0" class="input"></div>
-      <div class="field"><label>基地</label><select id="oBase" class="input"><option value="">未选择</option><option value="大理平">大理平</option><option value="剪市">剪市</option><option value="龙潭">龙潭</option><option value="泥窝潭">泥窝潭</option></select></div>
-    <div class="field span2"><div class="help">新增订单的初始未交数量 = 采购数量 − 初始在途数量。初始在途数量不能超过采购数量。</div></div>
+      <div class="field"><label>在途数量</label><input id="oTransit" type="number" min="0" step="any" value="0" class="input"></div>
+      <div class="field span2"><div class="help">新增订单的初始未交数量 = 采购数量 − 初始在途数量。初始在途数量不能超过采购数量。</div></div>
     </div>
   </div>
   <div class="modal-foot"><button class="btn outline" onclick="closeModal('orderModal')">取消</button><button class="btn primary" onclick="saveOrder()">新增订单</button></div>
@@ -282,69 +188,44 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 <div id="importModal" class="modal-backdrop"><div class="modal wide">
   <div class="modal-head"><h3>导入结果</h3><button class="close" onclick="closeModal('importModal')">×</button></div>
   <div class="modal-body"><div id="importSummary"></div><div id="importDetails" class="import-result"></div></div>
-  <div class="modal-foot"><button class="btn primary" onclick="closeModal('importModal'已有账户？<a onclick="toggleAuthMode()">返回登录</a>'已有账户？<a onclick="toggleAuthMode()">返回登录</a>' : '还没有账户？<a onclick="toggleAuthMode()">立即注册</a>';
-  document.getElementById("authConfirm").value = "";
-  document.getElementById("authError").classList.remove("show");
-}
+  <div class="modal-foot"><button class="btn primary" onclick="closeModal('importModal')">完成</button></div>
+</div></div>
+<div id="toast" class="toast"></div>
 
-function handleLogout() {
-  clearSession();
-  document.getElementById("authPage").classList.add("show");
-  document.getElementById("mainApp").style.display = "none";
-  document.getElementById("authUsername").value = "";
-  document.getElementById("authPassword").value = "";
-  document.getElementById("authConfirm").value = "";
-  document.getElementById("authConfirmField").style.display = "none";
-  document.getElementById("authSubmitBtn").textContent = "? ?";
-  document.getElementById("authSubtitle").textContent = "两次密码不一致";
-  document.getElementById("authSwitch").innerHTML = '还没有账户？<a onclick="toggleAuthMode()">立即注册</a>';
-  document.getElementById("authError").classList.remove("show");
-}
-
-function showMainApp() {
-  document.getElementById("authPage").classList.remove("show");
-  document.getElementById("mainApp").style.display = "";
-  updateUserDisplay();
-  renderAll();
-  loadSuppliersFromSupabase();
-  if (currentUser.role === "admin") {
-    document.getElementById("adminTab").style.display = "";
-    loadUsersFromSupabase();
-  } else {
-    document.getElementById("adminTab").style.display = "none";
-  }
-}
-
-function updateUserDisplay() {
-  if (!currentUser) return;
-  var display = document.getElementById("userInfoDisplay");
-  var roleLabel = currentUser.role === "admin" ? "管理员" : "供应商";
-  display.innerHTML = currentUser.username + ' <span class="user-role-badge">' + roleLabel + '</span> <button class="btn ghost small" onclick="handleLogout()">??</button>';
-}
-
-function initAuth() {
-  var session = getSession();
-  if (session) {
-    currentUser = session;
-    showMainApp();
-  }
-}
-
+<script>
+const SEED = {"orders":[{"id":"excel-2","materialCode":"ASMXC1000072","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":3356.0,"baseDeliveredQty":37.0,"transitQty":0.0,"initialOutstandingQty":3319.0,"createdAt":"Excel初始导入"},{"id":"excel-3","materialCode":"ASMXC1000072","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":2772.0,"baseDeliveredQty":780.0,"transitQty":0.0,"initialOutstandingQty":1992.0,"createdAt":"Excel初始导入"},{"id":"excel-4","materialCode":"ASMXC1000072","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":36088.0,"baseDeliveredQty":424.0,"transitQty":0.0,"initialOutstandingQty":35664.0,"createdAt":"Excel初始导入"},{"id":"excel-5","materialCode":"ASMXC1000070","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":51105.0,"baseDeliveredQty":49921.0,"transitQty":0.0,"initialOutstandingQty":1184.0,"createdAt":"Excel初始导入"},{"id":"excel-6","materialCode":"ASMXC1000070","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604240014","orderDate":"2026-04-24","purchaseQty":42913.0,"baseDeliveredQty":36739.0,"transitQty":0.0,"initialOutstandingQty":6174.0,"createdAt":"Excel初始导入"},{"id":"excel-7","materialCode":"ASMXC1000070","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":5875.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":5875.0,"createdAt":"Excel初始导入"},{"id":"excel-8","materialCode":"ASMXC1000070","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":16534.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":16534.0,"createdAt":"Excel初始导入"},{"id":"excel-9","materialCode":"ASMXC1000070","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":9266.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":9266.0,"createdAt":"Excel初始导入"},{"id":"excel-10","materialCode":"ASMXC1000029","materialName":"线材 绿色  PVC 单条线 FB 1007 耐温80℃ 18AWG 140.00mm 镀锡铜线 外径φ2.05 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":96.0,"baseDeliveredQty":9.0,"transitQty":0.0,"initialOutstandingQty":87.0,"createdAt":"Excel初始导入"},{"id":"excel-11","materialCode":"ASMXC1000029","materialName":"线材 绿色  PVC 单条线 FB 1007 耐温80℃ 18AWG 140.00mm 镀锡铜线 外径φ2.05 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607201093","orderDate":"2026-07-20","purchaseQty":35852.0,"baseDeliveredQty":3204.0,"transitQty":3400.0,"initialOutstandingQty":29248.0,"createdAt":"Excel初始导入"},{"id":"excel-12","materialCode":"ASMXC1000029","materialName":"线材 绿色  PVC 单条线 FB 1007 耐温80℃ 18AWG 140.00mm 镀锡铜线 外径φ2.05 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607251589","orderDate":"2026-07-25","purchaseQty":6300.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":6300.0,"createdAt":"Excel初始导入"},{"id":"excel-13","materialCode":"ASMXC1000068","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":5876.0,"baseDeliveredQty":0.0,"transitQty":5364.0,"initialOutstandingQty":512.0,"createdAt":"Excel初始导入"},{"id":"excel-14","materialCode":"ASMXC1000068","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":2448.0,"baseDeliveredQty":155.0,"transitQty":0.0,"initialOutstandingQty":2293.0,"createdAt":"Excel初始导入"},{"id":"excel-15","materialCode":"ASMXC1000068","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201094","orderDate":"2026-07-20","purchaseQty":42760.0,"baseDeliveredQty":0.0,"transitQty":14636.0,"initialOutstandingQty":28124.0,"createdAt":"Excel初始导入"},{"id":"excel-16","materialCode":"ASMXC1000076","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604240014","orderDate":"2026-04-24","purchaseQty":38758.0,"baseDeliveredQty":32368.0,"transitQty":0.0,"initialOutstandingQty":6390.0,"createdAt":"Excel初始导入"},{"id":"excel-17","materialCode":"ASMXC1000076","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":2375.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2375.0,"createdAt":"Excel初始导入"},{"id":"excel-18","materialCode":"ASMXC1000076","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":7274.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":7274.0,"createdAt":"Excel初始导入"},{"id":"excel-19","materialCode":"ASMXC1000076","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":3544.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3544.0,"createdAt":"Excel初始导入"},{"id":"excel-20","materialCode":"ASMXC1000318","materialName":"线材 黄色 PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":9783.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":9783.0,"createdAt":"Excel初始导入"},{"id":"excel-21","materialCode":"ASMXC1000318","materialName":"线材 黄色 PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":388.0,"initialOutstandingQty":9612.0,"createdAt":"Excel初始导入"},{"id":"excel-22","materialCode":"ASMXC1000318","materialName":"线材 黄色 PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":612.0,"baseDeliveredQty":0.0,"transitQty":612.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-23","materialCode":"ASMXC1000314","materialName":"线材 黑色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2605050025","orderDate":"2026-05-05","purchaseQty":9852.0,"baseDeliveredQty":1350.0,"transitQty":3000.0,"initialOutstandingQty":5502.0,"createdAt":"Excel初始导入"},{"id":"excel-24","materialCode":"ASMXC1000314","materialName":"线材 黑色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2605070005","orderDate":"2026-05-07","purchaseQty":148.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":148.0,"createdAt":"Excel初始导入"},{"id":"excel-25","materialCode":"ASMXC1000314","materialName":"线材 黑色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2605210021","orderDate":"2026-05-21","purchaseQty":3112.0,"baseDeliveredQty":586.0,"transitQty":0.0,"initialOutstandingQty":2526.0,"createdAt":"Excel初始导入"},{"id":"excel-26","materialCode":"ASMXC1000314","materialName":"线材 黑色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":10000.0,"createdAt":"Excel初始导入"},{"id":"excel-27","materialCode":"ASMXC1000314","materialName":"线材 黑色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":720.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":720.0,"createdAt":"Excel初始导入"},{"id":"excel-28","materialCode":"ASMXC1000066","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604020035","orderDate":"2026-04-02","purchaseQty":600.0,"baseDeliveredQty":144.0,"transitQty":0.0,"initialOutstandingQty":456.0,"createdAt":"Excel初始导入"},{"id":"excel-29","materialCode":"ASMXC1000066","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":41911.0,"baseDeliveredQty":38092.0,"transitQty":3819.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-30","materialCode":"ASMXC1000066","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604240014","orderDate":"2026-04-24","purchaseQty":42059.0,"baseDeliveredQty":39878.0,"transitQty":2181.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-31","materialCode":"ASMXC1000066","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":12398.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":12398.0,"createdAt":"Excel初始导入"},{"id":"excel-32","materialCode":"ASMXC1000066","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":3584.0,"baseDeliveredQty":961.0,"transitQty":0.0,"initialOutstandingQty":2623.0,"createdAt":"Excel初始导入"},{"id":"excel-33","materialCode":"ASMXC1000066","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":1762.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1762.0,"createdAt":"Excel初始导入"},{"id":"excel-34","materialCode":"ASMXC1000062","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":96.0,"baseDeliveredQty":78.0,"transitQty":0.0,"initialOutstandingQty":18.0,"createdAt":"Excel初始导入"},{"id":"excel-35","materialCode":"ASMXC1000062","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201093","orderDate":"2026-07-20","purchaseQty":40064.0,"baseDeliveredQty":1192.0,"transitQty":23000.0,"initialOutstandingQty":15872.0,"createdAt":"Excel初始导入"},{"id":"excel-36","materialCode":"ASMXC1000062","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201094","orderDate":"2026-07-20","purchaseQty":888.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":888.0,"createdAt":"Excel初始导入"},{"id":"excel-37","materialCode":"ASMXC1000049","materialName":"线材 绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 410mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm内径φ4.2mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":48.0,"baseDeliveredQty":46.0,"transitQty":0.0,"initialOutstandingQty":2.0,"createdAt":"Excel初始导入"},{"id":"excel-38","materialCode":"ASMXC1000049","materialName":"线材 绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 410mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm内径φ4.2mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2607201092","orderDate":"2026-07-20","purchaseQty":16690.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":16690.0,"createdAt":"Excel初始导入"},{"id":"excel-39","materialCode":"ASMXC1000316","materialName":"线材 蓝色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2605180025","orderDate":"2026-05-18","purchaseQty":9338.0,"baseDeliveredQty":2462.0,"transitQty":1000.0,"initialOutstandingQty":5876.0,"createdAt":"Excel初始导入"},{"id":"excel-40","materialCode":"ASMXC1000316","materialName":"线材 蓝色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":10000.0,"createdAt":"Excel初始导入"},{"id":"excel-41","materialCode":"ASMXC1000320","materialName":"线材 黄色 PVC 单条线 FB 1569 耐温105℃ 24AWG 50mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605180025","orderDate":"2026-05-18","purchaseQty":9297.0,"baseDeliveredQty":5198.0,"transitQty":0.0,"initialOutstandingQty":4099.0,"createdAt":"Excel初始导入"},{"id":"excel-42","materialCode":"ASMXC1000320","materialName":"线材 黄色 PVC 单条线 FB 1569 耐温105℃ 24AWG 50mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":10000.0,"createdAt":"Excel初始导入"},{"id":"excel-43","materialCode":"ASMXC1000315","materialName":"线材 白色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2605070005","orderDate":"2026-05-07","purchaseQty":148.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":148.0,"createdAt":"Excel初始导入"},{"id":"excel-44","materialCode":"ASMXC1000315","materialName":"线材 白色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2605210021","orderDate":"2026-05-21","purchaseQty":3112.0,"baseDeliveredQty":84.0,"transitQty":1000.0,"initialOutstandingQty":2028.0,"createdAt":"Excel初始导入"},{"id":"excel-45","materialCode":"ASMXC1000315","materialName":"线材 白色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":10000.0,"createdAt":"Excel初始导入"},{"id":"excel-46","materialCode":"ASMXC1000315","materialName":"线材 白色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":720.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":720.0,"createdAt":"Excel初始导入"},{"id":"excel-47","materialCode":"ASMXC1000064","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":1664.0,"baseDeliveredQty":1148.0,"transitQty":0.0,"initialOutstandingQty":516.0,"createdAt":"Excel初始导入"},{"id":"excel-48","materialCode":"ASMXC1000064","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1704.0,"baseDeliveredQty":220.0,"transitQty":0.0,"initialOutstandingQty":1484.0,"createdAt":"Excel初始导入"},{"id":"excel-49","materialCode":"ASMXC1000064","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":9266.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":9266.0,"createdAt":"Excel初始导入"},{"id":"excel-50","materialCode":"ASMXC1000196","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":2686.0,"baseDeliveredQty":165.0,"transitQty":0.0,"initialOutstandingQty":2521.0,"createdAt":"Excel初始导入"},{"id":"excel-51","materialCode":"ASMXC1000196","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":8808.0,"baseDeliveredQty":142.0,"transitQty":0.0,"initialOutstandingQty":8666.0,"createdAt":"Excel初始导入"},{"id":"excel-52","materialCode":"ASMXC1000194","materialName":"线材 黑色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605070005","orderDate":"2026-05-07","purchaseQty":10694.0,"baseDeliveredQty":4037.0,"transitQty":0.0,"initialOutstandingQty":6657.0,"createdAt":"Excel初始导入"},{"id":"excel-53","materialCode":"ASMXC1000194","materialName":"线材 黑色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1298.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1298.0,"createdAt":"Excel初始导入"},{"id":"excel-54","materialCode":"ASMXC1000194","materialName":"线材 黑色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":2672.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2672.0,"createdAt":"Excel初始导入"},{"id":"excel-55","materialCode":"ASMXC1000050","materialName":"线材 绿色  PVC 单条线 FB 1015 耐温105℃ 18AWG 300mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm内径φ4.0mm梅花地线铜端子 线尾半剥12mm","poNumber":"PO2603120017","orderDate":"2026-03-12","purchaseQty":235.0,"baseDeliveredQty":103.0,"transitQty":0.0,"initialOutstandingQty":132.0,"createdAt":"Excel初始导入"},{"id":"excel-56","materialCode":"ASMXC1000050","materialName":"线材 绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 300mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm内径φ4.0mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2604240014","orderDate":"2026-04-24","purchaseQty":15411.0,"baseDeliveredQty":14206.0,"transitQty":0.0,"initialOutstandingQty":1205.0,"createdAt":"Excel初始导入"},{"id":"excel-57","materialCode":"ASMXC1000050","materialName":"线材 绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 300mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm内径φ4.0mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2605180025","orderDate":"2026-05-18","purchaseQty":3410.0,"baseDeliveredQty":1801.0,"transitQty":0.0,"initialOutstandingQty":1609.0,"createdAt":"Excel初始导入"},{"id":"excel-58","materialCode":"ASMXC1000050","materialName":"线材 绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 300mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm内径φ4.0mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":4561.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":4561.0,"createdAt":"Excel初始导入"},{"id":"excel-59","materialCode":"ASMXC1000050","materialName":"线材 绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 300mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm内径φ4.0mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":2784.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2784.0,"createdAt":"Excel初始导入"},{"id":"excel-60","materialCode":"ASMXC1000193","materialName":"线材 白色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605070005","orderDate":"2026-05-07","purchaseQty":10694.0,"baseDeliveredQty":4437.0,"transitQty":0.0,"initialOutstandingQty":6257.0,"createdAt":"Excel初始导入"},{"id":"excel-61","materialCode":"ASMXC1000193","materialName":"线材 白色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1298.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1298.0,"createdAt":"Excel初始导入"},{"id":"excel-62","materialCode":"ASMXC1000193","materialName":"线材 白色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":2672.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2672.0,"createdAt":"Excel初始导入"},{"id":"excel-63","materialCode":"ASMXC1000195","materialName":"线材 红色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605070005","orderDate":"2026-05-07","purchaseQty":10694.0,"baseDeliveredQty":4940.0,"transitQty":0.0,"initialOutstandingQty":5754.0,"createdAt":"Excel初始导入"},{"id":"excel-64","materialCode":"ASMXC1000195","materialName":"线材 红色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1250.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1250.0,"createdAt":"Excel初始导入"},{"id":"excel-65","materialCode":"ASMXC1000195","materialName":"线材 红色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":2672.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2672.0,"createdAt":"Excel初始导入"},{"id":"excel-66","materialCode":"ASMXC1000317","materialName":"线材 红色 PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":388.0,"initialOutstandingQty":9612.0,"createdAt":"Excel初始导入"},{"id":"excel-67","materialCode":"ASMXC1000317","materialName":"线材 红色 PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":612.0,"baseDeliveredQty":0.0,"transitQty":612.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-68","materialCode":"ASMXC1000322","materialName":"线材 黄色 PVC 单条线 FB 1569 耐温105℃ 24AWG 120mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605180025","orderDate":"2026-05-18","purchaseQty":9338.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":9338.0,"createdAt":"Excel初始导入"},{"id":"excel-69","materialCode":"ASMXC1000025","materialName":"线材 红色 PVC 单条线 FB 1007 耐温80℃ 26AWG 30mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604220046","orderDate":"2026-04-22","purchaseQty":400.0,"baseDeliveredQty":379.0,"transitQty":21.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-70","materialCode":"ASMXC1000025","materialName":"线材 红色 PVC 单条线 FB 1007 耐温80℃ 26AWG 30mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":999.0,"initialOutstandingQty":9001.0,"createdAt":"Excel初始导入"},{"id":"excel-71","materialCode":"ASMXC1000023","materialName":"线材 黑色 PVC 单条线 FB 1007 耐温80℃ 26AWG 30mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604220046","orderDate":"2026-04-22","purchaseQty":400.0,"baseDeliveredQty":379.0,"transitQty":21.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-72","materialCode":"ASMXC1000023","materialName":"线材 黑色 PVC 单条线 FB 1007 耐温80℃ 26AWG 30mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":10000.0,"baseDeliveredQty":0.0,"transitQty":999.0,"initialOutstandingQty":9001.0,"createdAt":"Excel初始导入"},{"id":"excel-73","materialCode":"ASMXC2000049","materialName":"线材 白色 PVC 2芯 2464 耐温80℃ 26AWG 1A 200mm 10支0.1mm铜线 外径φ3.0mm 耐压300V 线头USB公端子 线尾TYPE-C公端子 外露长6.5mm+0.3mm","poNumber":"PO2607151005","orderDate":"2026-07-15","purchaseQty":9000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":9000.0,"createdAt":"Excel初始导入"},{"id":"excel-74","materialCode":"ASMXC1000323","materialName":"线材 棕色 PVC 单条线 FB 1569 耐温105℃ 24AWG 260mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2605180025","orderDate":"2026-05-18","purchaseQty":9338.0,"baseDeliveredQty":842.0,"transitQty":0.0,"initialOutstandingQty":8496.0,"createdAt":"Excel初始导入"},{"id":"excel-75","materialCode":"ASMXC3000118","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600mm LX 外径φ7.8mm 耐压300V  线尾外剥80mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":6200.0,"baseDeliveredQty":5270.0,"transitQty":0.0,"initialOutstandingQty":930.0,"createdAt":"Excel初始导入"},{"id":"excel-76","materialCode":"ASMXC3000118","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600mm LX 外径φ7.8mm 耐压300V  线尾外剥80mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":496.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":496.0,"createdAt":"Excel初始导入"},{"id":"excel-77","materialCode":"ASMXC3000118","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600mm LX 外径φ7.8mm 耐压300V  线尾外剥80mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":3700.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3700.0,"createdAt":"Excel初始导入"},{"id":"excel-78","materialCode":"ASMXC3000118","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1600mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥80mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":3112.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3112.0,"createdAt":"Excel初始导入"},{"id":"excel-79","materialCode":"ASMXC1000045","materialName":"线材 黑色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":192.0,"baseDeliveredQty":37.0,"transitQty":0.0,"initialOutstandingQty":155.0,"createdAt":"Excel初始导入"},{"id":"excel-80","materialCode":"ASMXC1000045","materialName":"线材 黑色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607181088","orderDate":"2026-07-18","purchaseQty":8157.0,"baseDeliveredQty":78.0,"transitQty":0.0,"initialOutstandingQty":8079.0,"createdAt":"Excel初始导入"},{"id":"excel-81","materialCode":"ASMXC1000045","materialName":"线材 黑色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201092","orderDate":"2026-07-20","purchaseQty":8482.0,"baseDeliveredQty":162.0,"transitQty":8320.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-82","materialCode":"ASMXC1000041","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":192.0,"baseDeliveredQty":37.0,"transitQty":0.0,"initialOutstandingQty":155.0,"createdAt":"Excel初始导入"},{"id":"excel-83","materialCode":"ASMXC1000041","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607181088","orderDate":"2026-07-18","purchaseQty":8157.0,"baseDeliveredQty":78.0,"transitQty":0.0,"initialOutstandingQty":8079.0,"createdAt":"Excel初始导入"},{"id":"excel-84","materialCode":"ASMXC1000041","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":604.0,"baseDeliveredQty":162.0,"transitQty":442.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-85","materialCode":"ASMXC1000041","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201092","orderDate":"2026-07-20","purchaseQty":7878.0,"baseDeliveredQty":0.0,"transitQty":7878.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-86","materialCode":"ASMXC1000074","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":7046.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":7046.0,"createdAt":"Excel初始导入"},{"id":"excel-87","materialCode":"ASMXC1000248","materialName":"线材 红色  PVC 单条线  FB1007 耐温80℃ 26AWG 200.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":3024.0,"baseDeliveredQty":2623.0,"transitQty":0.0,"initialOutstandingQty":401.0,"createdAt":"Excel初始导入"},{"id":"excel-88","materialCode":"ASMXC1000248","materialName":"线材 红色  PVC 单条线  FB1007 耐温80℃ 26AWG 200.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607140979","orderDate":"2026-07-14","purchaseQty":3805.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3805.0,"createdAt":"Excel初始导入"},{"id":"excel-89","materialCode":"ASMXC1000248","materialName":"线材 红色  PVC 单条线  FB1007 耐温80℃ 26AWG 200.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":4512.0,"baseDeliveredQty":0.0,"transitQty":2000.0,"initialOutstandingQty":2512.0,"createdAt":"Excel初始导入"},{"id":"excel-90","materialCode":"ASMXC1000167","materialName":"线材 棕色  硅胶线 单条线 FB 3239 耐温200℃ 22AWG 30mm 镀锡铜线 外径φ1.76mm 耐压300V 线头剥皮镀锡3mm 线尾半剥10mm","poNumber":"PO2607011199","orderDate":"2026-07-01","purchaseQty":1492.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1492.0,"createdAt":"Excel初始导入"},{"id":"excel-91","materialCode":"ASMXC1000167","materialName":"线材 棕色  硅胶线 单条线 FB 3239 耐温200℃ 22AWG 30mm 镀锡铜线 外径φ1.76mm 耐压300V 线头剥皮镀锡3mm 线尾半剥10mm","poNumber":"PO2607041308","orderDate":"2026-07-04","purchaseQty":4400.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":4400.0,"createdAt":"Excel初始导入"},{"id":"excel-92","materialCode":"ASMXC1000167","materialName":"线材 棕色  硅胶线 单条线 FB 3239 耐温200℃ 22AWG 30mm 镀锡铜线 外径φ1.76mm 耐压300V 线头剥皮镀锡3mm 线尾半剥10mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":576.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":576.0,"createdAt":"Excel初始导入"},{"id":"excel-93","materialCode":"ASMXC1000190","materialName":"线材 灰色  PVC 单条线 FB 1569 耐温105℃ 24AWG 90mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605180025","orderDate":"2026-05-18","purchaseQty":1720.0,"baseDeliveredQty":659.0,"transitQty":0.0,"initialOutstandingQty":1061.0,"createdAt":"Excel初始导入"},{"id":"excel-94","materialCode":"ASMXC1000190","materialName":"线材 灰色  PVC 单条线 FB 1569 耐温105℃ 24AWG 90mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":440.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":440.0,"createdAt":"Excel初始导入"},{"id":"excel-95","materialCode":"ASMXC1000190","materialName":"线材 灰色  PVC 单条线 FB 1569 耐温105℃ 24AWG 90mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":2795.0,"baseDeliveredQty":297.0,"transitQty":0.0,"initialOutstandingQty":2498.0,"createdAt":"Excel初始导入"},{"id":"excel-96","materialCode":"ASMXC1000190","materialName":"线材 灰色  PVC 单条线 FB 1569 耐温105℃ 24AWG 90mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":2095.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2095.0,"createdAt":"Excel初始导入"},{"id":"excel-97","materialCode":"ASMXC1000249","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 200mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":3024.0,"baseDeliveredQty":483.0,"transitQty":0.0,"initialOutstandingQty":2541.0,"createdAt":"Excel初始导入"},{"id":"excel-98","materialCode":"ASMXC1000249","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 200mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":12312.0,"baseDeliveredQty":500.0,"transitQty":8260.0,"initialOutstandingQty":3552.0,"createdAt":"Excel初始导入"},{"id":"excel-99","materialCode":"ASMXC1000249","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 200mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":4512.0,"baseDeliveredQty":0.0,"transitQty":4512.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-100","materialCode":"ASMXC3000115","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥60mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":4817.0,"baseDeliveredQty":4750.0,"transitQty":0.0,"initialOutstandingQty":67.0,"createdAt":"Excel初始导入"},{"id":"excel-101","materialCode":"ASMXC3000115","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥60mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607140979","orderDate":"2026-07-14","purchaseQty":2876.0,"baseDeliveredQty":300.0,"transitQty":0.0,"initialOutstandingQty":2576.0,"createdAt":"Excel初始导入"},{"id":"excel-102","materialCode":"ASMXC3000115","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥60mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":2528.0,"baseDeliveredQty":0.0,"transitQty":500.0,"initialOutstandingQty":2028.0,"createdAt":"Excel初始导入"},{"id":"excel-103","materialCode":"ASMXC3000115","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥60mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607251589","orderDate":"2026-07-25","purchaseQty":1300.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1300.0,"createdAt":"Excel初始导入"},{"id":"excel-104","materialCode":"ASMXC1000306","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 160.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605120007","orderDate":"2026-05-12","purchaseQty":828.0,"baseDeliveredQty":422.0,"transitQty":0.0,"initialOutstandingQty":406.0,"createdAt":"Excel初始导入"},{"id":"excel-105","materialCode":"ASMXC1000306","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 160.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":1348.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1348.0,"createdAt":"Excel初始导入"},{"id":"excel-106","materialCode":"ASMXC1000306","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 160.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":3424.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3424.0,"createdAt":"Excel初始导入"},{"id":"excel-107","materialCode":"ASMXC1000241","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 140.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":2016.0,"baseDeliveredQty":1496.0,"transitQty":0.0,"initialOutstandingQty":520.0,"createdAt":"Excel初始导入"},{"id":"excel-108","materialCode":"ASMXC1000241","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 140.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":4512.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":4512.0,"createdAt":"Excel初始导入"},{"id":"excel-109","materialCode":"ASMXC3000156","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1600mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥40mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 开关距插头200mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":3000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3000.0,"createdAt":"Excel初始导入"},{"id":"excel-110","materialCode":"ASMXC3000156","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1600mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥40mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 开关距插头200mm","poNumber":"PO2607171044","orderDate":"2026-07-17","purchaseQty":1991.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1991.0,"createdAt":"Excel初始导入"},{"id":"excel-111","materialCode":"ASMXC1000242","materialName":"线材 红色  PVC 单条线  FB1007 耐温80℃ 26AWG 140.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":2016.0,"baseDeliveredQty":1996.0,"transitQty":0.0,"initialOutstandingQty":20.0,"createdAt":"Excel初始导入"},{"id":"excel-112","materialCode":"ASMXC1000242","materialName":"线材 红色  PVC 单条线  FB1007 耐温80℃ 26AWG 140.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":4512.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":4512.0,"createdAt":"Excel初始导入"},{"id":"excel-113","materialCode":"ASMXC1000168","materialName":"线材 蓝色  硅胶线 单条线 FB 3239 耐温200℃ 22AWG 30mm 镀锡铜线 外径φ1.76mm 耐压300V 线头剥皮镀锡3mm 线尾半剥15mm","poNumber":"PO2607041308","orderDate":"2026-07-04","purchaseQty":3900.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3900.0,"createdAt":"Excel初始导入"},{"id":"excel-114","materialCode":"ASMXC1000168","materialName":"线材 蓝色  硅胶线 单条线 FB 3239 耐温200℃ 22AWG 30mm 镀锡铜线 外径φ1.76mm 耐压300V 线头剥皮镀锡3mm 线尾半剥15mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":576.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":576.0,"createdAt":"Excel初始导入"},{"id":"excel-115","materialCode":"ASMXC1000319","materialName":"线材 红色 PVC 单条线 FB 1569 耐温105℃ 24AWG 50mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":4099.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":4099.0,"createdAt":"Excel初始导入"},{"id":"excel-116","materialCode":"ASMXC1000311","materialName":"线材 棕色 PVC 单条线 FB 1569 耐温105℃ 24AWG 60.00mm 铜镀锡 外径1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":4099.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":4099.0,"createdAt":"Excel初始导入"},{"id":"excel-117","materialCode":"ASMXC1000031","materialName":"线材 绿色  PVC 单条线 FB 1007 耐温80℃ 18AWG 180mm 镀锡铜线 外径2.05 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":1946.0,"baseDeliveredQty":586.0,"transitQty":408.0,"initialOutstandingQty":952.0,"createdAt":"Excel初始导入"},{"id":"excel-118","materialCode":"ASMXC1000031","materialName":"线材 绿色  PVC 单条线 FB 1007 耐温80℃ 18AWG 180mm 镀锡铜线 外径2.05 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":2160.0,"baseDeliveredQty":994.0,"transitQty":1166.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-119","materialCode":"ASMXC1000031","materialName":"线材 绿色  PVC 单条线 FB 1007 耐温80℃ 18AWG 180mm 镀锡铜线 外径2.05 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":4626.0,"baseDeliveredQty":0.0,"transitQty":4626.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-120","materialCode":"ASMXC1000031","materialName":"线材 绿色  PVC 单条线 FB 1007 耐温80℃ 18AWG 180mm 镀锡铜线 外径2.05 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607251589","orderDate":"2026-07-25","purchaseQty":3000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":3000.0,"createdAt":"Excel初始导入"},{"id":"excel-121","materialCode":"ASMXC2000039","materialName":"线材 黑色 美规三脚插头带开关 PVC 2芯 SN 耐温105℃ 线芯2*0.5mm² 外印3*0.5mm2 1600mm LX（φ0.2*5BS） 外径φ5.2mm 耐压300V 线尾外剥60mm，黑/白线单剥螺旋镀锡3mm 开关距插头200mm","poNumber":"PO2604150024","orderDate":"2026-07-24","purchaseQty":10.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":10.0,"createdAt":"Excel初始导入"},{"id":"excel-122","materialCode":"ASMXC2000039","materialName":"线材 黑色 美规三脚插头带开关 PVC 2芯 SN 耐温105℃ 线芯2*0.5mm² 外印3*0.5mm2 1600mm LX（φ0.2*5BS） 外径φ5.2mm 耐压300V 线尾外剥60mm，黑/白线单剥螺旋镀锡3mm 开关距插头200mm","poNumber":"PO2607011206","orderDate":"2026-07-01","purchaseQty":190.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":190.0,"createdAt":"Excel初始导入"},{"id":"excel-123","materialCode":"ASMXC2000039","materialName":"线材 黑色 美规三脚插头带开关 PVC 2芯 SN 耐温105℃ 线芯2*0.5mm² 外印3*0.5mm2 1600mm LX（φ0.2*5BS） 外径φ5.2mm 耐压300V 线尾外剥60mm，黑/白线单剥螺旋镀锡3mm 开关距插头200mm","poNumber":"PO2607011207","orderDate":"2026-07-01","purchaseQty":1821.0,"baseDeliveredQty":824.0,"transitQty":0.0,"initialOutstandingQty":997.0,"createdAt":"Excel初始导入"},{"id":"excel-124","materialCode":"ASMXC2000039","materialName":"线材 黑色 美规三脚插头带开关 PVC 2芯 SN 耐温105℃ 线芯2*0.5mm² 外印3*0.5mm2 1600mm LX（φ0.2*5BS） 外径φ5.2mm 耐压300V 线尾外剥60mm，黑/白线单剥螺旋镀锡3mm 开关距插头200mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":2400.0,"baseDeliveredQty":0.0,"transitQty":1008.0,"initialOutstandingQty":1392.0,"createdAt":"Excel初始导入"},{"id":"excel-125","materialCode":"ASMXC2000039","materialName":"线材 黑色 美规三脚插头带开关 PVC 2芯 SN 耐温105℃ 线芯2*0.5mm² 外印3*0.5mm2 1600mm LX（φ0.2*5BS） 外径φ5.2mm 耐压300V 线尾外剥60mm，黑/白线单剥螺旋镀锡3mm 开关距插头200mm","poNumber":"PO2607251598","orderDate":"2026-07-25","purchaseQty":500.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":500.0,"createdAt":"Excel初始导入"},{"id":"excel-126","materialCode":"ASMXC3000110","materialName":"线材 黑色 美规三脚插头带开关 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1600mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥60mm，黑/白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子 开关距插头200mm","poNumber":"PO2607011199","orderDate":"2026-07-01","purchaseQty":6768.0,"baseDeliveredQty":3984.0,"transitQty":10.0,"initialOutstandingQty":2774.0,"createdAt":"Excel初始导入"},{"id":"excel-127","materialCode":"ASMXC1000240","materialName":"线材 黄色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":1520.0,"baseDeliveredQty":1493.0,"transitQty":0.0,"initialOutstandingQty":27.0,"createdAt":"Excel初始导入"},{"id":"excel-128","materialCode":"ASMXC1000240","materialName":"线材 黄色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":2088.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2088.0,"createdAt":"Excel初始导入"},{"id":"excel-129","materialCode":"ASMXC1000240","materialName":"线材 黄色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":504.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":504.0,"createdAt":"Excel初始导入"},{"id":"excel-130","materialCode":"ASMXC1000239","materialName":"线材 红色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":2088.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2088.0,"createdAt":"Excel初始导入"},{"id":"excel-131","materialCode":"ASMXC1000239","materialName":"线材 红色  PVC 单条线 FB 1569 耐温105℃ 24AWG 220mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":504.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":504.0,"createdAt":"Excel初始导入"},{"id":"excel-132","materialCode":"ASMXC1000033","materialName":"线材 黄绿色  PVC 单条线 FB 1007 耐温80℃ 20AWG 140mm 镀锡铜线 外径1.8mm 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":504.0,"baseDeliveredQty":294.0,"transitQty":0.0,"initialOutstandingQty":210.0,"createdAt":"Excel初始导入"},{"id":"excel-133","materialCode":"ASMXC1000033","materialName":"线材 黄绿色  PVC 单条线 FB 1007 耐温80℃ 20AWG 140mm 镀锡铜线 外径1.8mm 耐压300V 线头带外径φ7.5mm，内径φ4.0mm梅花地线端子 线尾带外径φ7.5mm，内径φ4.0mm梅花地线端子","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":2304.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2304.0,"createdAt":"Excel初始导入"},{"id":"excel-134","materialCode":"ASMXC2000066","materialName":"线材 黑色 PVC 2芯 FB 2464 耐温80℃ 26AWG 3100mm 镀锡铜线 外径φ3.0mm 耐压300V 剥外皮25mm剥内皮镀锡3mm 线尾剥外皮25mm剥内皮镀锡3mm","poNumber":"PO2605070005","orderDate":"2026-05-07","purchaseQty":2334.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2334.0,"createdAt":"Excel初始导入"},{"id":"excel-135","materialCode":"ASMXC2000066","materialName":"线材 黑色 PVC 2芯 FB 2464 耐温80℃ 26AWG 3100mm 镀锡铜线 外径φ3.0mm 耐压300V 剥外皮25mm剥内皮镀锡3mm 线尾剥外皮25mm剥内皮镀锡3mm","poNumber":"PO2605110029","orderDate":"2026-05-11","purchaseQty":1058.0,"baseDeliveredQty":992.0,"transitQty":0.0,"initialOutstandingQty":66.0,"createdAt":"Excel初始导入"},{"id":"excel-136","materialCode":"ASMXC1000086","materialName":"线材 红色  PVC 单条线 FB 1430 耐温105℃ 26AWG 160mm 镀锡铜线 外径φ1.3mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":840.0,"baseDeliveredQty":200.0,"transitQty":0.0,"initialOutstandingQty":640.0,"createdAt":"Excel初始导入"},{"id":"excel-137","materialCode":"ASMXC1000086","materialName":"线材 红色  PVC 单条线 FB 1430 耐温105℃ 26AWG 160mm 镀锡铜线 外径φ1.3mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":1612.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1612.0,"createdAt":"Excel初始导入"},{"id":"excel-138","materialCode":"ASMXC1000085","materialName":"线材 黑色  PVC 单条线 FB 1430 耐温105℃ 26AWG 160mm 镀锡铜线 外径φ1.3mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":840.0,"baseDeliveredQty":200.0,"transitQty":0.0,"initialOutstandingQty":640.0,"createdAt":"Excel初始导入"},{"id":"excel-139","materialCode":"ASMXC1000085","materialName":"线材 黑色  PVC 单条线 FB 1430 耐温105℃ 26AWG 160mm 镀锡铜线 外径φ1.3mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":1612.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1612.0,"createdAt":"Excel初始导入"},{"id":"excel-140","materialCode":"ASMXC1000084","materialName":"线材 白色  PVC 单条线 FB 1430 耐温105℃ 26AWG 160mm 镀锡铜线 外径φ1.3mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":840.0,"baseDeliveredQty":200.0,"transitQty":0.0,"initialOutstandingQty":640.0,"createdAt":"Excel初始导入"},{"id":"excel-141","materialCode":"ASMXC1000084","materialName":"线材 白色  PVC 单条线 FB 1430 耐温105℃ 26AWG 160mm 镀锡铜线 外径φ1.3mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201413","orderDate":"2026-07-20","purchaseQty":1612.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1612.0,"createdAt":"Excel初始导入"},{"id":"excel-142","materialCode":"ASMXC3000016","materialName":"线材 黑色 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 680mm LX 外径φ7.8mm 耐压300V 线头外剥40mm,黑白线单剥20mm,镀锡3mm,绿地线半剥12mm 线尾外剥80mm,黑白剥皮镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 零火线总长670mm,外漏端地线比零火线长10mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":914.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":914.0,"createdAt":"Excel初始导入"},{"id":"excel-143","materialCode":"ASMXC3000016","materialName":"线材 黑色 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 680mm LX 外径φ7.8mm 耐压300V 线头外剥40mm,黑白线单剥20mm,镀锡3mm,绿地线半剥12mm 线尾外剥80mm,黑白剥皮镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 零火线总长670mm,外漏端地线比零火线长10mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":784.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":784.0,"createdAt":"Excel初始导入"},{"id":"excel-144","materialCode":"ASMXC3000016","materialName":"线材 黑色 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 680mm LX 外径φ7.8mm 耐压300V 线头外剥40mm,黑白线单剥20mm,镀锡3mm,绿地线半剥12mm 线尾外剥80mm,黑白剥皮镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 零火线总长670mm,外漏端地线比零火线长10mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":504.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":504.0,"createdAt":"Excel初始导入"},{"id":"excel-145","materialCode":"ASMXC1000181","materialName":"线材 棕色  PVC 单条线 FB 1007 耐温80℃ 22AWG 220mm 镀锡铜线 外径φ1.6mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605050006","orderDate":"2026-05-05","purchaseQty":2199.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":2199.0,"createdAt":"Excel初始导入"},{"id":"excel-146","materialCode":"ASMXC1000075","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607140979","orderDate":"2026-07-14","purchaseQty":398.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":398.0,"createdAt":"Excel初始导入"},{"id":"excel-147","materialCode":"ASMXC1000075","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 180.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":3312.0,"baseDeliveredQty":284.0,"transitQty":1500.0,"initialOutstandingQty":1528.0,"createdAt":"Excel初始导入"},{"id":"excel-148","materialCode":"ASMXC1000189","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 90mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1993.0,"baseDeliveredQty":107.0,"transitQty":0.0,"initialOutstandingQty":1886.0,"createdAt":"Excel初始导入"},{"id":"excel-149","materialCode":"ASMXC1000223","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":440.0,"baseDeliveredQty":0.0,"transitQty":440.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-150","materialCode":"ASMXC1000223","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1993.0,"baseDeliveredQty":165.0,"transitQty":0.0,"initialOutstandingQty":1828.0,"createdAt":"Excel初始导入"},{"id":"excel-151","materialCode":"ASMXC1000223","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 80mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":2095.0,"baseDeliveredQty":0.0,"transitQty":2060.0,"initialOutstandingQty":35.0,"createdAt":"Excel初始导入"},{"id":"excel-152","materialCode":"ASMXC3000103","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥60mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":1500.0,"baseDeliveredQty":1360.0,"transitQty":0.0,"initialOutstandingQty":140.0,"createdAt":"Excel初始导入"},{"id":"excel-153","materialCode":"ASMXC3000103","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥60mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2605180025","orderDate":"2026-05-18","purchaseQty":7.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":7.0,"createdAt":"Excel初始导入"},{"id":"excel-154","materialCode":"ASMXC3000103","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥60mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1000.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1000.0,"createdAt":"Excel初始导入"},{"id":"excel-155","materialCode":"ASMXC3000103","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1600mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥60mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":689.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":689.0,"createdAt":"Excel初始导入"},{"id":"excel-156","materialCode":"ASMXC2000068","materialName":"线材 白色 PVC 2芯 FB 2464 耐温80℃ 26AWG 3100mm 镀锡铜线 外径φ3.0mm 耐压300V 剥外皮25mm剥内皮镀锡3mm 线尾剥外皮25mm剥内皮镀锡3mm","poNumber":"PO2605050025","orderDate":"2026-05-05","purchaseQty":1800.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1800.0,"createdAt":"Excel初始导入"},{"id":"excel-157","materialCode":"ASMXC3000092","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾剥外皮80mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2605190046","orderDate":"2026-05-19","purchaseQty":563.0,"baseDeliveredQty":487.0,"transitQty":0.0,"initialOutstandingQty":76.0,"createdAt":"Excel初始导入"},{"id":"excel-158","materialCode":"ASMXC3000092","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾剥外皮80mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":1760.0,"baseDeliveredQty":150.0,"transitQty":0.0,"initialOutstandingQty":1610.0,"createdAt":"Excel初始导入"},{"id":"excel-159","materialCode":"ASMXC3000134","materialName":"线材 黑色  PVC 3芯 UL 2464 耐温80℃ 22AWG 3100mm 镀锡铜线 外径φ4.0mm 耐压300V 线头剥外皮25mm剥内皮镀锡3mm 线尾剥外皮25mm剥内皮镀锡3mm","poNumber":"PO2605110029","orderDate":"2026-05-11","purchaseQty":5313.0,"baseDeliveredQty":3633.0,"transitQty":0.0,"initialOutstandingQty":1680.0,"createdAt":"Excel初始导入"},{"id":"excel-160","materialCode":"ASMXC1000231","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 160mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1524.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1524.0,"createdAt":"Excel初始导入"},{"id":"excel-161","materialCode":"ASMXC3000117","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥80mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":1028.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1028.0,"createdAt":"Excel初始导入"},{"id":"excel-162","materialCode":"ASMXC3000117","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥80mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":100.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":100.0,"createdAt":"Excel初始导入"},{"id":"excel-163","materialCode":"ASMXC3000117","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥80mm,黑白剥皮镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607140979","orderDate":"2026-07-14","purchaseQty":372.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":372.0,"createdAt":"Excel初始导入"},{"id":"excel-164","materialCode":"ASMXC1000198","materialName":"线材 白色  PVC 单条线 FB 1430 耐温105℃ 18AWG 100mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":1284.0,"baseDeliveredQty":812.0,"transitQty":0.0,"initialOutstandingQty":472.0,"createdAt":"Excel初始导入"},{"id":"excel-165","materialCode":"ASMXC1000198","materialName":"线材 白色  PVC 单条线 FB 1430 耐温105℃ 18AWG 100mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":996.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":996.0,"createdAt":"Excel初始导入"},{"id":"excel-166","materialCode":"ASMXC1000197","materialName":"线材 黑色  PVC 单条线 FB 1430 耐温105℃ 18AWG 100mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":1284.0,"baseDeliveredQty":812.0,"transitQty":0.0,"initialOutstandingQty":472.0,"createdAt":"Excel初始导入"},{"id":"excel-167","materialCode":"ASMXC1000197","materialName":"线材 黑色  PVC 单条线 FB 1430 耐温105℃ 18AWG 100mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":996.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":996.0,"createdAt":"Excel初始导入"},{"id":"excel-168","materialCode":"ASMXC1000296","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 24AWG 100mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":1420.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1420.0,"createdAt":"Excel初始导入"},{"id":"excel-169","materialCode":"ASMXC1000295","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 100mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":1420.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1420.0,"createdAt":"Excel初始导入"},{"id":"excel-170","materialCode":"ASMXC1000294","materialName":"线材 黑色  PVC 单条线 FB 1569 耐温105℃ 24AWG 100mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮浸锡3mm 线尾剥皮浸锡3mm","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":1420.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1420.0,"createdAt":"Excel初始导入"},{"id":"excel-171","materialCode":"ASMXC1000060","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":942.0,"baseDeliveredQty":44.0,"transitQty":0.0,"initialOutstandingQty":898.0,"createdAt":"Excel初始导入"},{"id":"excel-172","materialCode":"ASMXC1000060","materialName":"线材 白色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":6786.0,"baseDeliveredQty":272.0,"transitQty":6000.0,"initialOutstandingQty":514.0,"createdAt":"Excel初始导入"},{"id":"excel-173","materialCode":"ASMXC3000113","materialName":"线材 白色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥95mm,黑白剥皮镀锡3mm 绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2601090005","orderDate":"2026-01-09","purchaseQty":1190.0,"baseDeliveredQty":1118.0,"transitQty":0.0,"initialOutstandingQty":72.0,"createdAt":"Excel初始导入"},{"id":"excel-174","materialCode":"ASMXC3000113","materialName":"线材 白色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥95mm,黑白剥皮镀锡3mm 绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":105.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":105.0,"createdAt":"Excel初始导入"},{"id":"excel-175","materialCode":"ASMXC3000113","materialName":"线材 白色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥95mm,黑白剥皮镀锡3mm 绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2604240014","orderDate":"2026-04-24","purchaseQty":90.0,"baseDeliveredQty":86.0,"transitQty":0.0,"initialOutstandingQty":4.0,"createdAt":"Excel初始导入"},{"id":"excel-176","materialCode":"ASMXC3000113","materialName":"线材 白色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥95mm,黑白剥皮镀锡3mm 绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":1108.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1108.0,"createdAt":"Excel初始导入"},{"id":"excel-177","materialCode":"ASMXC1000305","materialName":"线材 红色  PVC 单条线  FB1007 耐温80℃ 26AWG 160.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":1348.0,"baseDeliveredQty":64.0,"transitQty":0.0,"initialOutstandingQty":1284.0,"createdAt":"Excel初始导入"},{"id":"excel-178","materialCode":"ASMXC1000057","materialName":"线材 黄绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 410mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":504.0,"baseDeliveredQty":393.0,"transitQty":0.0,"initialOutstandingQty":111.0,"createdAt":"Excel初始导入"},{"id":"excel-179","materialCode":"ASMXC1000057","materialName":"线材 黄绿色 PVC 单条线 FB 1015 耐温105℃ 18AWG 410mm 镀锡铜线 外径φ2.8mm 耐压600V 线头带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 线尾半剥20mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":1152.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1152.0,"createdAt":"Excel初始导入"},{"id":"excel-180","materialCode":"ASMXC1000188","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 24AWG 140.00mm 镀锡铜线 外径φ1.4mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":1152.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1152.0,"createdAt":"Excel初始导入"},{"id":"excel-181","materialCode":"ASMXC1000044","materialName":"线材 蓝色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":1152.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1152.0,"createdAt":"Excel初始导入"},{"id":"excel-182","materialCode":"ASMXC1000042","materialName":"线材 棕色 PVC 单条线 FB 1015 耐温105℃ 18AWG 280mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":1152.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1152.0,"createdAt":"Excel初始导入"},{"id":"excel-183","materialCode":"ASMXC3000027","materialName":"线材 黑色 欧规插头 PVC 3芯  VDE H05VV-F 3*1.0mm2 1600.00mm 外径φ7mm 耐压300V 线头欧标三脚插头 线尾外剥80mm,棕蓝剥皮镀锡3mm 黄绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子 开关距插头200mm","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":546.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":546.0,"createdAt":"Excel初始导入"},{"id":"excel-184","materialCode":"ASMXC3000027","materialName":"线材 黑色 欧规插头 PVC 3芯  VDE H05VV-F 3*1.0mm2 1600.00mm 外径φ7mm 耐压300V 线头欧标三脚插头 线尾外剥80mm,棕蓝剥皮镀锡3mm 黄绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子 开关距插头200mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":600.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":600.0,"createdAt":"Excel初始导入"},{"id":"excel-185","materialCode":"ASMXC1000182","materialName":"线材 蓝色  PVC 单条线 FB 1007 耐温80℃ 22AWG 220mm 铜镀锡 外径1.6 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2605050006","orderDate":"2026-05-05","purchaseQty":1022.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1022.0,"createdAt":"Excel初始导入"},{"id":"excel-186","materialCode":"ASMXC1000172","materialName":"线材 七芯祼铜线 祼铜线 单条线 UL 3122 耐温200℃ 18AWG 200.00mm 镀锡铜线 外径φ1.2mm 耐压300V 线头外径φ7.5mm内径φ4.2mm梅花地线端子","poNumber":"PO2607231549","orderDate":"2026-07-23","purchaseQty":1014.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1014.0,"createdAt":"Excel初始导入"},{"id":"excel-187","materialCode":"ASMXC1000046","materialName":"线材 黑色 PVC 单条线 FB 1015 耐温105℃ 18AWG 400mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":252.0,"baseDeliveredQty":0.0,"transitQty":252.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-188","materialCode":"ASMXC1000046","materialName":"线材 黑色 PVC 单条线 FB 1015 耐温105℃ 18AWG 400mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1708.0,"baseDeliveredQty":75.0,"transitQty":632.0,"initialOutstandingQty":1001.0,"createdAt":"Excel初始导入"},{"id":"excel-189","materialCode":"ASMXC1000046","materialName":"线材 黑色 PVC 单条线 FB 1015 耐温105℃ 18AWG 400mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201093","orderDate":"2026-07-20","purchaseQty":2120.0,"baseDeliveredQty":328.0,"transitQty":1792.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-190","materialCode":"ASMXC3000104","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥95mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":300.0,"baseDeliveredQty":0.0,"transitQty":300.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-191","materialCode":"ASMXC3000104","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥95mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":311.0,"baseDeliveredQty":203.0,"transitQty":108.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-192","materialCode":"ASMXC3000104","materialName":"线材 黑色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥95mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":1000.0,"baseDeliveredQty":0.0,"transitQty":96.0,"initialOutstandingQty":904.0,"createdAt":"Excel初始导入"},{"id":"excel-193","materialCode":"ASMXC3000129","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 2200mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥60mm，黑/白线单剥螺旋镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子","poNumber":"PO2607201089","orderDate":"2026-07-20","purchaseQty":802.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":802.0,"createdAt":"Excel初始导入"},{"id":"excel-194","materialCode":"ASMXC3000015","materialName":"线材 黑色 PVC 3芯 FB SJTW 耐温105℃ 18AWG 680mm 铜线 外径φ7.8mm 耐压300V 线头外剥40mm,黑白线单剥12mm,镀锡3mm,绿地线半剥12mm 线尾外剥60mm,黑白剥皮镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 零火线总长670mm,外漏端地线比零火线长10mm","poNumber":"PO2607011195","orderDate":"2026-07-01","purchaseQty":306.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":306.0,"createdAt":"Excel初始导入"},{"id":"excel-195","materialCode":"ASMXC3000015","materialName":"线材 黑色 PVC 3芯 FB SJTW 耐温105℃ 18AWG 680mm 铜线 外径φ7.8mm 耐压300V 线头外剥40mm,黑白线单剥12mm,镀锡3mm,绿地线半剥12mm 线尾外剥60mm,黑白剥皮镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 零火线总长670mm,外漏端地线比零火线长10mm","poNumber":"PO2607201091","orderDate":"2026-07-20","purchaseQty":396.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":396.0,"createdAt":"Excel初始导入"},{"id":"excel-196","materialCode":"ASMXC3000014","materialName":"线材 黑色 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 680mm LX 外径φ7.8mm 耐压300V 线头外剥40mm,黑白线单剥20mm,镀锡3mm,绿地线半剥12mm 线尾外剥95mm,黑白剥皮镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 零火线总长670mm,外漏端地线比零火线长10mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":702.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":702.0,"createdAt":"Excel初始导入"},{"id":"excel-197","materialCode":"ASMXC3000125","materialName":"线材 白色 美规三脚插头 PVC 3芯  HW 耐温105℃ 线芯3*0.824mm² 1600.00mm LX 外径φ7.8mm 耐压300V  线尾外剥60mm,黑白剥皮镀锡3mm 绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":600.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":600.0,"createdAt":"Excel初始导入"},{"id":"excel-198","materialCode":"ASMXC3000096","materialName":"线材 黑色 欧规插头 PVC 3芯   3*1.0mm²铝线 1600.00mm 外径φ7.0mm   一端剥外皮80mm，棕、蓝线单剥螺旋镀锡3mm 黄绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 开关距插头200mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":512.0,"baseDeliveredQty":47.0,"transitQty":0.0,"initialOutstandingQty":465.0,"createdAt":"Excel初始导入"},{"id":"excel-199","materialCode":"ASMXCPX00029","materialName":"线材 白黑红 44mm、47mm、50mm PVC 三线 UL UL1332 耐温200℃ 28AWG(7/0.12 TS) 0.00mm 铜镀锡 外径Φ1.05  线头用1.25mm 3PIN连接器 线尾剥皮镀锡2mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":350.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":350.0,"createdAt":"Excel初始导入"},{"id":"excel-200","materialCode":"ASMXC1000179","materialName":"线材 白色  PVC 单条线 UL 1007 耐温80℃ 22AWG 220mm 铜镀锡 外径1.6 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604240014","orderDate":"2026-04-24","purchaseQty":1655.0,"baseDeliveredQty":1335.0,"transitQty":0.0,"initialOutstandingQty":320.0,"createdAt":"Excel初始导入"},{"id":"excel-201","materialCode":"ASMXC3000138","materialName":"线材 白色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 6100mm 材质（13支0.2 AS+13支0.2 LX） 外径φ7.8mm 耐压300V 线尾外剥100mm 黑白线半剥20mm 绿线半剥16mm 要求捆扎线长度不超过240mm","poNumber":"PO2607171044","orderDate":"2026-07-17","purchaseQty":301.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":301.0,"createdAt":"Excel初始导入"},{"id":"excel-202","materialCode":"ASMXC3000153","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 6100mm LX（φ0.2*5BS） 外径φ7.8mm 耐压300V 线尾外剥95mm，黑白线单剥螺旋镀锡3mm 绿地线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 要求捆扎线长度不超过240mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":300.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":300.0,"createdAt":"Excel初始导入"},{"id":"excel-203","materialCode":"ASMXC1000034","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 240mm 镀锡铜线 外径φ2.8mm 耐压600V 线头半剥20mm 线尾剥皮20mm 镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":1010.0,"baseDeliveredQty":754.0,"transitQty":0.0,"initialOutstandingQty":256.0,"createdAt":"Excel初始导入"},{"id":"excel-204","materialCode":"ASMXC3000121","materialName":"线材 黑色 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 680mm LX 外径φ7.8mm 耐压300V 线头外剥40mm,黑白线单剥20mm,镀锡3mm,绿地线半剥12mm 线尾外剥160mm,黑白剥皮镀锡3mm 绿线带外径φ7.5mm 内径φ4.2mm梅花地线铜端子 零火线总长670mm，外漏端地线比零火线长10mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":246.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":246.0,"createdAt":"Excel初始导入"},{"id":"excel-205","materialCode":"ASMXC1000207","materialName":"线材 蓝色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220.00mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":47.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":47.0,"createdAt":"Excel初始导入"},{"id":"excel-206","materialCode":"ASMXC1000207","materialName":"线材 蓝色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220.00mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":198.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":198.0,"createdAt":"Excel初始导入"},{"id":"excel-207","materialCode":"ASMXC1000206","materialName":"线材 棕色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220.00mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":47.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":47.0,"createdAt":"Excel初始导入"},{"id":"excel-208","materialCode":"ASMXC1000206","materialName":"线材 棕色  PVC 单条线 FB 1430 耐温105℃ 18AWG 220.00mm 镀锡铜线 外径φ2.1mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":198.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":198.0,"createdAt":"Excel初始导入"},{"id":"excel-209","materialCode":"ASMXC1000183","materialName":"线材 红色  PVC 单条线 UL 1007 耐温80℃ 28AWG 25mm 铜镀锡 外径1.2 耐压300V  线尾剥皮镀锡3mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":47.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":47.0,"createdAt":"Excel初始导入"},{"id":"excel-210","materialCode":"ASMXC1000183","materialName":"线材 红色  PVC 单条线 UL 1007 耐温80℃ 28AWG 25mm 铜镀锡 外径1.2 耐压300V  线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":198.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":198.0,"createdAt":"Excel初始导入"},{"id":"excel-211","materialCode":"ASMXC1000303","materialName":"线材 黑色  PVC 单条线  FB1007 耐温80℃ 26AWG 100.00mm 铜镀锡 外径1.3 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2606010019","orderDate":"2026-06-01","purchaseQty":1008.0,"baseDeliveredQty":769.0,"transitQty":0.0,"initialOutstandingQty":239.0,"createdAt":"Excel初始导入"},{"id":"excel-212","materialCode":"ASMXC2000056","materialName":"线材 白色 PVC 2芯 FB 2464 耐温80℃ 26AWG 500mm 镀锡铜线 外径φ3.0mm 耐压300V 线头两芯公插头 线尾剥外皮100mm，棕/蓝线单剥螺旋镀锡3mm","poNumber":"PO2605210021","orderDate":"2026-05-21","purchaseQty":600.0,"baseDeliveredQty":373.0,"transitQty":0.0,"initialOutstandingQty":227.0,"createdAt":"Excel初始导入"},{"id":"excel-213","materialCode":"ASMXC2000055","materialName":"线材 白色  PVC 2芯 UL 2464 耐温80℃ 22AWG 2500mm 镀锡铜线 外径φ3.8mm 耐压300V 线头两芯母插头带防水圈塑胶螺帽 线尾剥外皮30mm，棕/蓝线单剥螺旋镀锡3mm","poNumber":"PO2605210021","orderDate":"2026-05-21","purchaseQty":600.0,"baseDeliveredQty":394.0,"transitQty":0.0,"initialOutstandingQty":206.0,"createdAt":"Excel初始导入"},{"id":"excel-214","materialCode":"ASMXC3000141","materialName":"线材 白色 美规三脚插头 PVC 2芯  HW 耐温105℃ 线芯2*0.824mm² 6100mm LX（φ0.2*5BS） 外径φ7.5mm 耐压300V  线尾外剥95mm 黑白剥皮镀锡3mm  要求捆扎线长度不超过240mm","poNumber":"PO2607201090","orderDate":"2026-07-20","purchaseQty":204.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":204.0,"createdAt":"Excel初始导入"},{"id":"excel-215","materialCode":"ASMXC1000221","materialName":"线材 蓝色  PVC 单条线 FB 1569 耐温105℃ 20AWG 180.00mm 镀锡铜线 外径φ1.8mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":198.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":198.0,"createdAt":"Excel初始导入"},{"id":"excel-216","materialCode":"ASMXC1000220","materialName":"线材 棕色  PVC 单条线 FB 1569 耐温105℃ 20AWG 180.00mm 镀锡铜线 外径φ1.8mm 耐压300V 线头剥皮镀锡3mm 线尾剥皮镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":198.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":198.0,"createdAt":"Excel初始导入"},{"id":"excel-217","materialCode":"ASMXC3000150","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 6100mm 材质（13支0.2 AS+13支0.2 LX） 外径φ7.8mm 耐压300V 线尾外剥60mm 黑白线半剥20mm 绿线半剥16mm 要求捆扎线长度不超过240mm","poNumber":"PO2607021243","orderDate":"2026-07-02","purchaseQty":180.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":180.0,"createdAt":"Excel初始导入"},{"id":"excel-218","materialCode":"ASMXC2000057","materialName":"线材 白色 美规三脚插头带开关 PVC 2芯  SN 耐温105℃ 线芯2*0.5mm² 外印3*0.5mm2 1600mm LX 外径φ5.2mm 耐压300V  线尾外剥60mm，黑/白线单剥螺旋镀锡3mm  开关距插头200mm","poNumber":"PO2604140017","orderDate":"2026-04-14","purchaseQty":100.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":100.0,"createdAt":"Excel初始导入"},{"id":"excel-219","materialCode":"ASMXC3000145","materialName":"线材 白色 欧规三脚插头 橡胶 2芯  VDE H05RN-F 耐温105℃ 2*1.0mm² 6100mm 铜线 外径φ7mm 耐压300V  线尾外剥95mm 棕蓝剥皮镀锡3mm  要求捆扎线长度不超过240mm","poNumber":"PO2604220008","orderDate":"2026-04-22","purchaseQty":49.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":49.0,"createdAt":"Excel初始导入"},{"id":"excel-220","materialCode":"ASMXC2000061","materialName":"线材 黑色 PVC 2芯 UL 2464 耐温80℃ 22AWG 3100mm 镀锡铜线 外径φ3.8mm 耐压300V 线头SR剥外皮25mm剥内皮镀锡3mm（客供线材） 线尾剥外皮25mm剥内皮镀锡3mm","poNumber":"PO2605230007","orderDate":"2026-05-23","purchaseQty":1.0,"baseDeliveredQty":0.0,"transitQty":0.0,"initialOutstandingQty":1.0,"createdAt":"Excel初始导入"},{"id":"excel-221","materialCode":"ASMXC3000149","materialName":"线材 白色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1600mm 材质（13支0.2 AS+13支0.2 LX） 外径φ7.8mm 耐压300V 线尾外剥60mm 黑白线半剥20mm 绿线半剥16mm","poNumber":"PO2607181077","orderDate":"2026-07-18","purchaseQty":435.0,"baseDeliveredQty":0.0,"transitQty":435.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-222","materialCode":"ASMXC3000148","materialName":"线材 黑色 美规三脚插头 PVC 3芯 HW 耐温105℃ 线芯3*0.824mm² 1600mm 材质（13支0.2 AS+13支0.2 LX） 外径φ7.8mm 耐压300V 线尾外剥60mm 黑白线半剥20mm 绿线半剥16mm","poNumber":"PO2607181077","orderDate":"2026-07-18","purchaseQty":545.0,"baseDeliveredQty":0.0,"transitQty":545.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-223","materialCode":"ASMXC3000026","materialName":"线材 黑色 美规三脚插头带开关 PVC 3芯 SN 耐温105℃ 线芯3*0.5mm² 1600mm LX（φ0.2*5BS） 外径φ5.6mm 耐压300V 线尾外剥60mm,黑白剥皮镀锡3mm 绿地线带φ7.5mm 内径φ4.2mm梅花齿地线铜端子 开关距插头200mm","poNumber":"PO2607011199","orderDate":"2026-07-01","purchaseQty":12795.0,"baseDeliveredQty":11455.0,"transitQty":1340.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-224","materialCode":"ASMXC1000043","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 400mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607090855","orderDate":"2026-07-09","purchaseQty":252.0,"baseDeliveredQty":28.0,"transitQty":224.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-225","materialCode":"ASMXC1000043","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 400mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201092","orderDate":"2026-07-20","purchaseQty":748.0,"baseDeliveredQty":308.0,"transitQty":440.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"},{"id":"excel-226","materialCode":"ASMXC1000043","materialName":"线材 白色 PVC 单条线 FB 1015 耐温105℃ 18AWG 400mm 镀锡铜线 外径φ2.8mm 耐压600V 线头剥皮镀锡3mm 线尾剥皮20mm镀锡3mm","poNumber":"PO2607201093","orderDate":"2026-07-20","purchaseQty":868.0,"baseDeliveredQty":192.0,"transitQty":676.0,"initialOutstandingQty":0.0,"createdAt":"Excel初始导入"}],"deliveries":[]};
+const STORAGE_KEY = "supplier_order_delivery_manager_v1";
+let state = loadState();
+let fileMode = "";
+let openMaterials = new Set();
+var SUPABASE_URL="https://ifvzmbomwdupjgikcucy.supabase.co";
+var SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
+var AUTH_HDR={apikey:SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"};
+var currentUser=null;
+function getSession(){try{return JSON.parse(localStorage.getItem("app_session")||"null")}catch(e){return null}}
+function saveSession(s){localStorage.setItem("app_session",JSON.stringify(s))}
+function clearSession(){localStorage.removeItem("app_session");currentUser=null}
+function generateSalt(){var a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a).map(function(b){return b.toString(16).padStart(2,"0")}).join("")}
+async function hashPassword(pwd,salt){var e=new TextEncoder();var d=e.encode(pwd+salt);var h=await crypto.subtle.digest("SHA-256",d);return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,"0")}).join("")}
+async function supabaseRest(method,table,body,query){var url=SUPABASE_URL+"/rest/v1/"+table+(query||"");var opts={method:method,headers:Object.assign({},AUTH_HDR)};if(body){opts.body=JSON.stringify(body);opts.headers["Prefer"]="return=representation"}var resp=await fetch(url,opts);var text=await resp.text();try{return JSON.parse(text)}catch(e){throw new Error(text||resp.status+"")}}
+async function handleAuth(){var u=document.getElementById("authUsername").value.trim();var p=document.getElementById("authPassword").value;var isReg=document.getElementById("authConfirmField").style.display!=="none";var err=document.getElementById("authError");err.classList.remove("show");if(!u||!p){err.textContent="请填写用户名和密码";err.classList.add("show");return}if(isReg){var cf=document.getElementById("authConfirm").value;if(p!==cf){err.textContent="两次密码不一致";err.classList.add("show");return}if(p.length<4){err.textContent="密码至少4位";err.classList.add("show");return}}try{if(isReg){try{var ex=await supabaseRest("GET","app_users",null,"?username=eq."+encodeURIComponent(u)+"&select=id");if(ex&&ex.length>0){err.textContent="该用户名已被注册";err.classList.add("show");return}}catch(e){}var salt=generateSalt();var hash=await hashPassword(p,salt);var result=await supabaseRest("POST","app_users",{username:u,password_hash:salt+":"+hash,role:"viewer",supplier_codes:[]});currentUser=Array.isArray(result)?result[0]:result}else{var users=await supabaseRest("GET","app_users",null,"?username=eq."+encodeURIComponent(u)+"&select=*");if(!users||users.length===0){err.textContent="用户名或密码错误";err.classList.add("show");return}var user=users[0];var parts=user.password_hash.split(":");var hs=await hashPassword(p,parts[0]);if(hs!==parts.slice(1).join(":")){err.textContent="用户名或密码错误";err.classList.add("show");return}currentUser=user}saveSession({username:currentUser.username,role:currentUser.role,id:currentUser.id});showMainApp()}catch(e){err.textContent=(isReg?"注册失败":"登录失败")+"："+(e.message||e);err.classList.add("show")}}
+function toggleAuthMode(){var isReg=document.getElementById("authConfirmField").style.display!=="none";document.getElementById("authConfirmField").style.display=isReg?"none":"block";document.getElementById("authSubmitBtn").textContent=isReg?"登 录":"注 册";document.getElementById("authTitle").textContent="供应商订单与交付管理";document.getElementById("authSubtitle").textContent=isReg?"请登录以继续":"创建新账户";document.getElementById("authSwitch").innerHTML=isReg?'还没有账户？<a onclick="toggleAuthMode()">立即注册</a>':'已有账户？<a onclick="toggleAuthMode()">返回登录</a>';document.getElementById("authConfirm").value="";document.getElementById("authError").classList.remove("show")}
+function handleLogout(){clearSession();document.getElementById("authPage").classList.add("show");document.getElementById("mainApp").style.display="none";document.getElementById("authUsername").value="";document.getElementById("authPassword").value="";document.getElementById("authConfirm").value="";document.getElementById("authConfirmField").style.display="none";document.getElementById("authSubmitBtn").textContent="登 录";document.getElementById("authSubtitle").textContent="请登录以继续";document.getElementById("authSwitch").innerHTML='还没有账户？<a onclick="toggleAuthMode()">立即注册</a>';document.getElementById("authError").classList.remove("show")}
+function showMainApp(){document.getElementById("authPage").classList.remove("show");document.getElementById("mainApp").style.display="";updateUserDisplay();renderAll();loadSuppliersFromSupabase();if(currentUser.role==="admin"){document.getElementById("adminTab").style.display="";loadUsersFromSupabase()}else{document.getElementById("adminTab").style.display="none"}}
+function updateUserDisplay(){if(!currentUser)return;var d=document.getElementById("userInfoDisplay");if(!d)return;var r=currentUser.role==="admin"?"管理员":"供应商";d.innerHTML=currentUser.username+' <span class="user-role-badge">'+r+'</span> <button class="btn ghost small" onclick="handleLogout()">退出</button>'}
+function initAuth(){var s=getSession();if(s){currentUser=s;showMainApp()}}
 const nf = new Intl.NumberFormat("zh-CN",{maximumFractionDigits:3});
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function loadState(){
   try{
     const saved=localStorage.getItem(STORAGE_KEY);
-    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries)){for(var _i=0;_i<d.orders.length;_i++){if(!d.orders[_i].base)d.orders[_i].base="";if(!d.orders[_i].baseHistory)d.orders[_i].baseHistory=[]}return d}}
+    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries))return d}
   }catch(e){}
   return clone(SEED);
 }
-function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){}if(window.__supabaseSync)window.__supabaseSync()}
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));window.__supabaseSync&&window.__supabaseSync()}
 function uid(prefix){return prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
-function baseCell(o){var b=o.base||"";return"<span class=\"base-link\" onclick=\"editBase('"+o.id+"')\" style=\"cursor:pointer;border-bottom:1px dashed var(--brand);color:"+(b?"var(--brand)":"#98a2b3")+"\">"+esc(b||"未设置")+"</span>"}
-function editBase(id){var o=state.orders.find(function(x){return x.id===id});if(!o)return;var bb=o.base||"";var m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};var h="<div class=\"modal\" style=\"width:350px\"><div class=\"modal-head\"><h3>选择基地</h3><button class=\"close\" onclick=\"this.parentElement.parentElement.parentElement.remove()\">×</button></div><div class=\"modal-body\">";var bases=["大理平","剪市","龙潭","泥窝潭"];for(var i=0;i<bases.length;i++){var v=bases[i];var hl=(bb===v);h+="<div style=\"padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0"+(hl?";background:var(--brand);color:#fff":";background:#f3f6fb")+"\" onclick=\"confirmBase('"+id+"','"+v+"')\" data-val=\"\">"+v+(hl?" ✓":"")+"</div>"}h+="<div style=\"margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px\">当前基地: <strong>"+esc(bb||"未设置")+"</strong></div></div></div>";m.innerHTML=h;document.body.appendChild(m)}
-function confirmBase(id,v){var o=state.orders.find(function(x){return x.id===id});if(!o)return;if(o.base===v){var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();toast("基地已更改为 "+v)}
 function today(){return new Date().toISOString().slice(0,10)}
 function qty(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function fmt(v){return nf.format(qty(v))}
@@ -399,9 +280,9 @@ function renderOrders(){
       const stat=o.outstandingQty>0?'<span class="badge open">有未交</span>':(o.transitQty>0?'<span class="badge transit">在途</span>':'<span class="badge done">已完成</span>');
       const canDelete=!String(o.id).startsWith("excel-");
       const deleteBtn=canDelete?`<button class="btn danger small" onclick="event.stopPropagation();deleteOrder('${o.id}')">删除订单</button>`:"";
-      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${baseCell(o)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal(\'+o.id+\')" data-order-id="'+o.id+'">登记交付</button>':'<span class=\"zero\" style=\"font-size:12px\">无需交付</span>'}${deleteBtn}</div></td></tr>`;
+      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal('${o.id}')">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'}${deleteBtn}</div></td></tr>`;
     }).join("");
-    box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>基地</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     root.appendChild(box);idx++;
   }
 }
@@ -414,20 +295,18 @@ function populateMaterialSelects(){
   const ms=materials(), options=ms.map(m=>`<option value="${esc(m.code)}">${esc(m.code)}｜${esc(m.name)}</option>`).join("");
   document.getElementById("dMaterial").innerHTML=options;document.getElementById("oMaterial").innerHTML=options;
 }
-function openDeliveryModal(orderId){
-  try{
-    populateMaterialSelects();
-    var o=orderId?state.orders.find(function(x){return x.id===orderId}):state.orders.find(function(x){return derived(x).outstandingQty>0});
-    
-    if(o){document.getElementById("dMaterial").value=o.materialCode;var dx=derived(o);var s=document.getElementById("dPo");s.innerHTML="<option value=\""+o.id+"\" selected>"+esc(o.poNumber)+"｜"+esc(o.orderDate)+"｜未交 "+fmt(dx.outstandingQty)+"</option>";showOrderBalance()}
-    document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
+function openDeliveryModal(orderId=""){
+  populateMaterialSelects();
+  let o=orderId?state.orders.find(x=>x.id===orderId):state.orders.find(x=>derived(x).outstandingQty>0);
+  if(o)document.getElementById("dMaterial").value=o.materialCode;
+  refreshPoOptions(o?o.id:"");
+  document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
-}catch(e){toast("打开失败:"+e.message,"error")}}
-function refreshPoOptions(preselect){
-  if(typeof preselect==="undefined")preselect="";
+}
+function refreshPoOptions(preselect=""){
   const code=document.getElementById("dMaterial").value;
-  const os=state.orders.filter(function(o){return o.materialCode===code}).map(derived).sort(function(a,b){return a.orderDate.localeCompare(b.orderDate)});
-  document.getElementById("dPo").innerHTML=os.map(function(o){return"<option value=\""+o.id+"\""+(o.id===preselect?" selected":"")+">"+esc(o.poNumber)+"｜"+esc(o.orderDate)+"｜未交 "+fmt(o.outstandingQty)+"</option>"}).join("");
+  const os=state.orders.filter(o=>o.materialCode===code).map(derived).sort((a,b)=>a.orderDate.localeCompare(b.orderDate));
+  document.getElementById("dPo").innerHTML=os.map(o=>`<option value="${o.id}" ${o.id===preselect?"selected":""}>${esc(o.poNumber)}｜${esc(o.orderDate)}｜未交 ${fmt(o.outstandingQty)}</option>`).join("");
   showOrderBalance();
 }
 function showOrderBalance(){
@@ -459,10 +338,8 @@ function saveOrder(){
   if(!code||!name||!po||!date||p<=0){toast("请完整填写必填字段","error");return}
   if(t<0||t>p){toast("初始在途数量必须在 0 到采购数量之间","error");return}
   if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){toast("该物料下已存在相同采购单号","error");return}
-  var bSel=document.getElementById("oBase").value;state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:bSel,baseHistory:[],createdAt:new Date().toLocaleString("zh-CN")});
-  var newOrderId=uid("order");state.orders.push({id:newOrderId,materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:bSel,baseHistory:[],createdAt:new Date().toLocaleString("zh-CN")});
-  if(t>0){if(!state.transitHistory)state.transitHistory=[];state.transitHistory.push({id:uid("transit"),orderId:newOrderId,materialCode:code,materialName:name,poNumber:po,quantity:t,remainingQty:t,deliveryDate:date,note:"新增订单初始在途",source:"订单导入",receipts:[],createdAt:new Date().toLocaleString("zh-CN")})}
-  saveState();openMaterials.add(code);closeModal("orderModal");renderOrders();renderHistory();toast("采购订单已新增，未交数量已增加");
+  state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,createdAt:new Date().toLocaleString("zh-CN")});
+  saveState();openMaterials.add(code);closeModal("orderModal");renderOrders();toast("采购订单已新增，未交数量已增加");
 }
 function deleteOrder(id){
   const o=state.orders.find(x=>x.id===id);
@@ -537,7 +414,7 @@ function importOrders(rows){
     if(!code||!name||!po||!date||p<=0){errors.push(`第 ${i+2} 行：必填字段不完整或采购数量无效`);return}
     if(t<0||t>p){errors.push(`第 ${i+2} 行：在途数量无效`);return}
     if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){errors.push(`第 ${i+2} 行：该物料采购单已存在`);return}
-    var bVal=String(getVal(r,["基地","base"])).trim()||"";var oid=uid("order");state.orders.push({id:oid,materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:bVal,baseHistory:[],createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});if(t>0){if(!state.transitHistory)state.transitHistory=[];state.transitHistory.push({id:uid("transit"),orderId:oid,materialCode:code,materialName:name,poNumber:po,quantity:t,remainingQty:t,deliveryDate:date,note:"批量导入初始在途",source:"订单导入",receipts:[],createdAt:new Date().toLocaleString("zh-CN")})}ok++;
+    state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});ok++;
   });
   saveState();renderAll();showImportResult(ok,errors);
 }
@@ -553,9 +430,6 @@ function downloadText(name,text,type="text/csv;charset=utf-8"){
 function downloadDeliveryTemplate(){
   downloadText("交付导入模板.csv","物料编码,采购单号,交付数量,交付日期,备注\nASMXC1000072,PO2606010019,100,2026-08-01,送货单示例");
 }
-function downloadOrderTemplate(){
-  downloadText("采购订单导入模板.csv","物料编码,物料名称,采购单号,下单日期,采购数量,在途数量,基地\nASMXC1000072,线材蓝色PVC单条线,PO2608010001,2026-08-01,1000,0,大理平");
-}
 function exportWorkbook(){
   const orderRows=state.orders.map(o=>{const x=derived(o);return{"物料编码":o.materialCode,"物料名称":o.materialName,"采购单号":o.poNumber,"下单日期":o.orderDate,"采购数量":o.purchaseQty,"累计已交付数量":x.deliveredQty,"在途数量":o.transitQty,"未交数量":x.outstandingQty}});
   const deliveryRows=state.deliveries.map(d=>({"交付日期":d.deliveryDate,"物料编码":d.materialCode,"物料名称":d.materialName,"采购单号":d.poNumber,"交付数量":d.quantity,"备注":d.note,"录入方式":d.source,"录入时间":d.createdAt}));
@@ -570,274 +444,8 @@ function resetAll(){
   if(!confirm("确认清除所有新增订单与交付履历，并恢复为上传Excel的原始数据吗？此操作不可撤销。"))return;
   state=clone(SEED);saveState();openMaterials.clear();renderAll();toast("已恢复原始Excel数据");
 }
-
-/* ?? Supplier Management ?? */
-function loadSuppliersFromSupabase() {
-  supabaseRest("GET", "suppliers", null, "?select=*&order=created_at.desc").then(data => {
-    window._suppliers = data || [];
-    renderSuppliers();
-  }).catch(() => {
-    window._suppliers = window._suppliers || [];
-    renderSuppliers();
-  });
-}
-
-function renderSuppliers() {
-  var body = document.getElementById("supplierBody");
-  var empty = document.getElementById("supplierEmpty");
-  if (!body) return;
-  var suppliers = window._suppliers || [];
-  if (!suppliers.length) { body.innerHTML = ""; empty.style.display = "block"; return; }
-  empty.style.display = "none";
-  body.innerHTML = suppliers.map(function(s) {
-    return '<tr><td class="mono">' + esc(s.code) + '</td><td>' + esc(s.name) + '</td><td>' + esc(s.contact||"") + '</td><td>' + esc(s.phone||"") + '</td><td>' + esc(s.address||"") + '</td><td>' + esc(s.notes||"") + '</td><td><button class="btn outline small" onclick="editSupplier('$1')">编辑</button> <button class="btn danger small" onclick="deleteSupplier('$1')">删除</button></td></tr>';
-  }).join("");
-}
-
-function openSupplierModal(id) {
-  if (id) {
-    var s = (window._suppliers||[]).find(function(x) { return x.id === id; });
-    if (!s) return;
-    document.getElementById("supplierModalTitle").textContent = "创建新账户";
-    document.getElementById("supplierEditId").value = s.id;
-    document.getElementById("supplierCode").value = s.code || "";
-    document.getElementById("supplierName").value = s.name || "";
-    document.getElementById("supplierContact").value = s.contact || "";
-    document.getElementById("supplierPhone").value = s.phone || "";
-    document.getElementById("supplierAddress").value = s.address || "";
-    document.getElementById("supplierNotes").value = s.notes || "";
-  } else {
-    document.getElementById("supplierModalTitle").textContent = "创建新账户";
-    document.getElementById("supplierEditId").value = "";
-    document.getElementById("supplierCode").value = "";
-    document.getElementById("supplierName").value = "";
-    document.getElementById("supplierContact").value = "";
-    document.getElementById("supplierPhone").value = "";
-    document.getElementById("supplierAddress").value = "";
-    document.getElementById("supplierNotes").value = "";
-  }
-  document.getElementById("supplierModal").classList.add("show");
-}
-
-function editSupplier(id) { openSupplierModal(id); }
-
-async function saveSupplier() {
-  var editId = document.getElementById("supplierEditId").value;
-  var code = document.getElementById("supplierCode").value.trim();
-  var name = document.getElementById("supplierName").value.trim();
-  if (!code || !name) { toast("请填写用户名和密码", "error"); return; }
-  var data = {
-    code: code,
-    name: name,
-    contact: document.getElementById("supplierContact").value.trim(),
-    phone: document.getElementById("supplierPhone").value.trim(),
-    address: document.getElementById("supplierAddress").value.trim(),
-    notes: document.getElementById("supplierNotes").value.trim()
-  };
-  try {
-    if (editId) {
-      await supabaseRest("PATCH", "suppliers", data, "?id=eq." + encodeURIComponent(editId));
-    } else {
-      await supabaseRest("POST", "suppliers", data);
-    }
-    closeModal("supplierModal");
-    loadSuppliersFromSupabase();
-    toast(editId ? "两次密码不一致" : "两次密码不一致");
-  } catch(e) {
-    toast("创建新账户" + (e.message || e), "error");
-  }
-}
-
-async function deleteSupplier(id) {
-  if (!confirm("确认删除该供应商吗？")) return;
-  try {
-    await supabaseRest("DELETE", "suppliers", null, "?id=eq." + encodeURIComponent(id));
-    loadSuppliersFromSupabase();
-    toast("两次密码不一致");
-  } catch(e) { toast("创建新账户" + (e.message || e), "error"); }
-}
-
-/* ?? User Management (Admin only) ?? */
-function loadUsersFromSupabase() {
-  supabaseRest("GET", "app_users", null, "?select=*&order=created_at.desc").then(data => {
-    window._appUsers = data || [];
-    renderUserManagement();
-  }).catch(() => {
-    window._appUsers = window._appUsers || [];
-    renderUserManagement();
-  });
-}
-
-window.syncUsersFromSupabase = function() { loadUsersFromSupabase(); };
-
-function renderUserManagement() {
-  var body = document.getElementById("userManagementBody");
-  var empty = document.getElementById("userManagementEmpty");
-  if (!body) return;
-  var users = window._appUsers || [];
-  if (!users.length) { body.innerHTML = ""; empty.style.display = "block"; return; }
-  empty.style.display = "none";
-  body.innerHTML = users.map(function(u) {
-    var sc = Array.isArray(u.supplier_codes) ? u.supplier_codes.join(", ") : (u.supplier_codes || "");
-    var createdAt = u.created_at ? new Date(u.created_at).toLocaleString("zh-CN") : "";
-    return '<tr><td>' + esc(u.username) + '</td><td><span class="user-role ' + u.role + '">' + (u.role==="admin"?"管理员":"管理员") + '</span></td><td>' + esc(sc||"在途") + '</td><td>' + esc(createdAt) + '</td><td><button class="btn outline small" onclick="editUser('' + u.id + '')">??</button> <button class="btn outline small" onclick="openResetPwd('' + u.id + '','' + esc(u.username) + '')">删除</button> <button class="btn danger small" onclick="deleteUser('' + u.id + '')">??</button></td></tr>';
-  }).join("");
-}
-
-function openUserModal(id) {
-  if (id) {
-    var u = (window._appUsers||[]).find(function(x) { return x.id === id; });
-    if (!u) return;
-    document.getElementById("userModalTitle").textContent = "已交付";
-    document.getElementById("userEditId").value = u.id;
-    document.getElementById("userEditUsername").value = u.username || "";
-    document.getElementById("userEditPassword").value = "";
-    document.getElementById("userEditRole").value = u.role || "viewer";
-    document.getElementById("userEditSupplierCodes").value = Array.isArray(u.supplier_codes) ? u.supplier_codes.join(", ") : (u.supplier_codes || "");
-  } else {
-    document.getElementById("userModalTitle").textContent = "已交付";
-    document.getElementById("userEditId").value = "";
-    document.getElementById("userEditUsername").value = "";
-    document.getElementById("userEditPassword").value = "";
-    document.getElementById("userEditRole").value = "viewer";
-    document.getElementById("userEditSupplierCodes").value = "";
-  }
-  document.getElementById("userModal").classList.add("show");
-}
-
-window.editUser = function(id) { openUserModal(id); };
-
-async function saveUser() {
-  var editId = document.getElementById("userEditId").value;
-  var username = document.getElementById("userEditUsername").value.trim();
-  var password = document.getElementById("userEditPassword").value;
-  var role = document.getElementById("userEditRole").value;
-  var scRaw = document.getElementById("userEditSupplierCodes").value.trim();
-  var supplierCodes = scRaw ? scRaw.split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
-
-  if (!username) { toast("两次密码不一致", "error"); return; }
-
-  try {
-    var data = { username: username, role: role, supplier_codes: supplierCodes };
-    if (password && password.length >= 4) {
-      var salt = generateSalt();
-      var hash = await hashPassword(password, salt);
-      data.password_hash = salt + ":" + hash;
-    }
-    if (editId) {
-      await supabaseRest("PATCH", "app_users", data, "?id=eq." + encodeURIComponent(editId));
-    } else {
-      if (!password || password.length < 4) { toast("密码至少4位", "error"); return; }
-      await supabaseRest("POST", "app_users", data);
-    }
-    closeModal("userModal");
-    loadUsersFromSupabase();
-    toast(editId ? "创建新账户" : "创建新账户");
-  } catch(e) {
-    toast("创建新账户" + (e.message || e), "error");
-  }
-}
-
-function openResetPwd(userId, username) {
-  document.getElementById("resetPwdTargetUser").value = userId;
-  document.getElementById("resetPwdLabel").textContent = "为用户 " + username + " 重置密码";
-  document.getElementById("resetPwdNew").value = "";
-  document.getElementById("resetPwdModal").classList.add("show");
-}
-window.openResetPwd = openResetPwd;
-
-async function resetUserPassword() {
-  var userId = document.getElementById("resetPwdTargetUser").value;
-  var newPwd = document.getElementById("resetPwdNew").value;
-  if (!newPwd || newPwd.length < 4) { toast("密码至少4位", "error"); return; }
-  try {
-    var salt = generateSalt();
-    var hash = await hashPassword(newPwd, salt);
-    await supabaseRest("PATCH", "app_users", {password_hash: salt + ":" + hash}, "?id=eq." + encodeURIComponent(userId));
-    closeModal("resetPwdModal");
-    toast("创建新账户");
-  } catch(e) {
-    toast("创建新账户" + (e.message || e), "error");
-  }
-}
-window.resetUserPassword = resetUserPassword;
-
-async function deleteUser(id) {
-  if (!confirm("该用户名已被注册")) return;
-  try {
-    await supabaseRest("DELETE", "app_users", null, "?id=eq." + encodeURIComponent(id));
-    loadUsersFromSupabase();
-    toast("创建新账户");
-  } catch(e) { toast("创建新账户" + (e.message || e), "error"); }
-}
-window.deleteUser = deleteUser;
-
-function isAdmin() { return currentUser && currentUser.role === "admin"; }
-
-
-/* ?? KPI Flow History: Global summary ?? */
-window.openKpiFlowHistory = function(type) {
-  ensureFlowData();
-  addEnhancementUI();
-
-  var modal = document.getElementById("flowHistoryModal");
-  if (!modal) return;
-
-  document.getElementById("flowHistoryTitle").textContent = type === "transit" ? "确认删除该供应商吗？" : "该用户名已被注册";
-
-  document.getElementById("flowOrderInfo").innerHTML = '<b>全局汇总</b> - 所有物料的' + (type === "transit" ? "在途" : "管理员") + '??';
-
-  var purchaseQty = 0, deliveredQty = 0, transitQty = 0, outstandingQty = 0;
-  state.orders.forEach(function(o) {
-    var d = derived(o);
-    purchaseQty += d.purchaseQty;
-    deliveredQty += d.deliveredQty;
-    transitQty += d.transitQty;
-    outstandingQty += d.outstandingQty;
-  });
-  document.getElementById("flowPurchase").textContent = fmt(purchaseQty);
-  document.getElementById("flowDelivered").textContent = fmt(deliveredQty);
-  document.getElementById("flowTransit").textContent = fmt(transitQty);
-  document.getElementById("flowOutstanding").textContent = fmt(outstandingQty);
-
-  var head = document.getElementById("flowHistoryHead");
-  var body = document.getElementById("flowHistoryBody");
-  var empty = document.getElementById("flowHistoryEmpty");
-  var rows = [];
-
-  if (type === "transit") {
-    head.innerHTML = '<tr><th>物料编码</th><th>物料编码</th><th class="num">登记数量</th><th class="num">???</th><th class="num">登记数量</th><th>??</th><th>??</th><th>??</th></tr>';
-
-    state.transitHistory.filter(function(item) { return qty(item.remainingQty) > 0; }).sort(function(a,b) {
-      return String(b.deliveryDate).localeCompare(String(a.deliveryDate)) || String(b.createdAt).localeCompare(String(a.createdAt));
-    }).forEach(function(item) {
-      var status = getTransitStatus(item);
-      var received = receivedQuantity(item);
-      rows.push('<tr><td class="mono">' + esc(item.materialCode) + '</td><td>' + esc(item.poNumber) + '</td><td class="num">' + fmt(item.quantity) + '</td><td class="num success-text">' + fmt(received) + '</td><td class="num" style="color:var(--orange);font-weight:700">' + fmt(item.remainingQty) + '</td><td><span class="flow-status ' + status.className + '">' + esc(status.text) + '</span></td><td>' + esc(item.note||item.source||"") + '</td><td><div class="flow-actions"><button class="btn primary small" onclick="confirmTransitArrival('' + item.id + '')">删除</button><button class="btn danger small" onclick="deleteTransitDelivery('' + item.id + '')">删除</button></div></td></tr>');
-    });
-  } else {
-    head.innerHTML = '<tr><th>物料编码</th><th>物料编码</th><th>供应商交付日期</th><th>实际到货日期</th><th class="num">分别到货数量</th><th>??</th><th>??</th><th>??</th></tr>';
-
-    // Legacy deliveries
-    state.deliveries.forEach(function(item) {
-      rows.push('<tr><td class="mono">' + esc(item.materialCode) + '</td><td>' + esc(item.poNumber) + '</td><td>' + esc(item.deliveryDate||"管理员") + '</td><td>' + esc(item.deliveryDate||"管理员") + '</td><td class="num success-text">' + fmt(item.quantity) + '</td><td><span class="flow-status delivered">已到货</span></td><td>' + esc(item.note||item.source||"已交付") + '</td><td><button class="btn danger small" onclick="deleteDelivery('' + item.id + '')">删除</button></td></tr>');
-    });
-
-    // Transit receipts (confirmed arrivals)
-    state.transitHistory.forEach(function(item) {
-      (item.receipts||[]).forEach(function(receipt) {
-        rows.push('<tr><td class="mono">' + esc(item.materialCode) + '</td><td>' + esc(item.poNumber) + '</td><td>' + esc(item.deliveryDate||"旧版登记???") + '</td><td>' + esc(receipt.receiveDate||"管理员") + '</td><td class="num success-text">' + fmt(receipt.quantity) + '</td><td><span class="flow-status delivered">???</span></td><td>' + esc(item.note||item.source||"") + '</td><td><button class="btn danger small" onclick="deleteTransitDelivery('' + item.id + '')">删除整条登记</button></td></tr>');
-      });
-    });
-  }
-
-  body.innerHTML = rows.join("");
-  empty.style.display = rows.length ? "none" : "block";
-  modal.classList.add("show");
-};
-
 function renderAll(){populateMaterialSelects();renderOrders();renderHistory()}
-document.querySelectorAll(".modal-backdrop").forEach(x=>x.addEventListener("click",e=>{if(e.target===x)x.classList.remove("show")}));
+  document.querySelectorAll(".modal-backdrop").forEach(x=>x.addEventListener("click",e=>{if(e.target===x)x.classList.remove("show")}));
 initAuth();
 </script>
 <!-- 供应商订单与交付管理：完整合并修正版 -->
@@ -2783,23 +2391,79 @@ initAuth();
 })();
 </script>
 
-
 <script>
-(function(){
-  var URL="https://ifvzmbomwdupjgikcucy.supabase.co";
-  var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
-  var timer=null;
-  function btn(){return document.getElementById("syncStatusBtn")}
-  function ui(s,m){var b=btn();if(!b)return;var cl={ok:"#0e9f6e",busy:"#f79009",err:"#e5484d"};b.innerHTML="☁";b.style.color=cl[s]||"#fff";b.title=m||s}
-  var HDR={apikey:KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"};
-  async function rest(p){var r=await fetch(URL+"/rest/v1/"+p,{headers:HDR});if(!r.ok&&r.status!==406)throw Error(r.status+"");try{return await r.json()}catch(e){return null}}
-  async function saveAll(){ui("busy","同步中...");try{var st2=window.state;if(!st2||!st2.orders)return;for(var i=0;i<st2.orders.length;i++){try{await fetch(URL+"/rest/v1/orders",{method:"POST",headers:Object.assign({},HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(st2.orders[i])})}catch(e){}}var a=["deliveries","transit_history"];for(var ai=0;ai<a.length;ai++){var arr=st2[a[ai]];if(arr)for(var i=0;i<arr.length;i++){try{await fetch(URL+"/rest/v1/"+a[ai],{method:"POST",headers:Object.assign({},HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(arr[i])})}catch(e){}}}ui("ok","已同步")}catch(e){ui("err","同步失败")}}
-  async function loadAll(){try{var st2=window.state;if(!st2)return;var o,d,t;try{o=await rest("orders?select=*")}catch(e){}try{d=await rest("deliveries?select=*")}catch(e){}try{t=await rest("transit_history?select=*")}catch(e){}if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){ui("ok","就绪");return}if(o&&o.length)for(var i=0;i<o.length;i++){var idx=st2.orders.findIndex(function(x){return x.id===o[i].id});if(idx>=0)st2.orders[idx]=o[i];else st2.orders.push(o[i])}if(d&&d.length)for(var i=0;i<d.length;i++){var idx=st2.deliveries.findIndex(function(x){return x.id===d[i].id});if(idx>=0)st2.deliveries[idx]=d[i];else st2.deliveries.push(d[i])}if(t&&t.length){if(!st2.transitHistory)st2.transitHistory=[];for(var i=0;i<t.length;i++){var idx=st2.transitHistory.findIndex(function(x){return x.id===t[i].id});if(idx>=0)st2.transitHistory[idx]=t[i];else st2.transitHistory.push(t[i])}}try{localStorage.setItem("supplier_order_delivery_manager_v1",JSON.stringify(st2))}catch(e){}try{if(typeof renderOrders==="function")renderOrders();if(typeof renderHistory==="function")renderHistory()}catch(e){}ui("ok","已同步")}catch(e){ui("err","拉取失败")}}
-  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(saveAll,800)};
-  window.syncNow=function(){ui("busy","同步中...");saveAll().then(loadAll)};
-  setTimeout(function(){loadAll().catch(function(){})},3000);
-  setInterval(function(){loadAll().catch(function(){})},60000);
+(function() {
+  var URL = 'https://ifvzmbomwdupjgikcucy.supabase.co';
+  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A';
+  var client = null;
+  var status = 'connecting';
+  var timer = null;
+
+  function btn(){return document.getElementById('syncStatusBtn')}
+  function ui(s,m){status=s;var b=btn();if(!b)return;var c={connected:'#0e9f6e',connecting:'#f79009',error:'#e5484d',disconnected:'#98a2b3'};b.innerHTML='☁';b.style.color=c[s]||'#fff';b.title=m||s}
+  function conn(){ui('connected','云端已连接')}
+  function connErr(e){ui('error','同步失败: '+e)}
+
+  if(typeof supabase!=='undefined'&&supabase.createClient){
+    client=supabase.createClient(URL,KEY,{auth:{persistSession:false},realtime:{enabled:true}})
+  }
+
+  var HDR={apikey:KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+
+  async function rest(p,o){
+    var r=await fetch(URL+'/rest/v1/'+p,{headers:HDR,...o});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var ct=r.headers.get('content-type')||'';
+    return ct.includes('json')?r.json():null
+  }
+
+  async function syncUp(){
+    ui('connecting','同步中...');
+    try{
+      var st=typeof window.state!=='undefined'?window.state:null;
+      if(!st){conn();return}
+      var all=[];
+      if(Array.isArray(st.orders))st.orders.forEach(function(o){all.push({table:'orders',row:o})});
+      if(Array.isArray(st.deliveries))st.deliveries.forEach(function(d){all.push({table:'deliveries',row:d})});
+      if(Array.isArray(st.transitHistory))st.transitHistory.forEach(function(t){all.push({table:'transit_history',row:t})});
+      for(var i=0;i<all.length;i++){
+        try{
+          if(client){await client.from(all[i].table).upsert(all[i].row,{onConflict:'id'})}
+          else{await rest(all[i].table,{method:'POST',body:JSON.stringify(all[i].row),headers:Object.assign({},HDR,{'Prefer':'resolution=merge-duplicates'})})}
+        }catch(e){}
+      }
+      conn()
+    }catch(e){connErr(e.message)}
+  }
+
+  async function syncDown(){
+    try{
+      var st=typeof window.state!=='undefined'?window.state:null;
+      if(!st)return;
+      var o,d,t;
+      if(client){var r1=await client.from('orders').select('*');if(!r1.error)o=r1.data;var r2=await client.from('deliveries').select('*');if(!r2.error)d=r2.data;var r3=await client.from('transit_history').select('*');if(!r3.error)t=r3.data}
+      else{try{o=await rest('orders?select=*')}catch(e){}try{d=await rest('deliveries?select=*')}catch(e){}try{t=await rest('transit_history?select=*')}catch(e){}}
+      if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){conn();return}
+      if(o&&o.length){o.forEach(function(co){var idx=st.orders.findIndex(function(x){return x.id===co.id});if(idx>=0)st.orders[idx]=co;else st.orders.push(co)})}
+      if(d&&d.length){d.forEach(function(cd){var idx=st.deliveries.findIndex(function(x){return x.id===cd.id});if(idx>=0)st.deliveries[idx]=cd;else st.deliveries.push(cd)})}
+      if(t&&t.length){if(!st.transitHistory)st.transitHistory=[];t.forEach(function(ct){var idx=st.transitHistory.findIndex(function(x){return x.id===ct.id});if(idx>=0)st.transitHistory[idx]=ct;else st.transitHistory.push(ct)})}
+      try{localStorage.setItem('supplier_order_delivery_manager_v1',JSON.stringify(st))}catch(e){}
+      conn()
+      if(typeof renderOrders==='function')renderOrders()
+      if(typeof renderHistory==='function')renderHistory()
+    }catch(e){connErr(e.message)}
+  }
+
+  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(syncUp,500)};
+  window.syncNow=function(){ui('connecting','同步中...');syncUp().then(syncDown)};
+
+  ui('connecting','连接中...');
+  setTimeout(function(){syncDown().catch(function(e){connErr(e.message)})},2000);
+  setInterval(function(){if(status!=='error')syncDown()},30000);
+
+  if(client&&client.channel){
+    try{var ch=client.channel('db-changes');ch.on('postgres_changes',{event:'*',schema:'public'},function(){setTimeout(syncDown,1500)});ch.subscribe()}catch(e){}
+  }
 })();
-</script>
-</body>
+</script></body>
 </html>
