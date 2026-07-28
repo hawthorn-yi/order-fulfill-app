@@ -24,10 +24,6 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 .dropdown{position:relative}.menu{display:none;position:absolute;right:0;top:44px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);min-width:190px;overflow:hidden;z-index:30}.menu.show{display:block}.menu button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:11px 14px;cursor:pointer;color:#26344e}.menu button:hover{background:#f3f6fb}.file-input{display:none}.import-result{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:7px;margin-top:12px}.import-result div{padding:7px 10px;border-bottom:1px solid #eee}.import-result div:last-child{border:0}
 @media(max-width:1050px){.kpis{grid-template-columns:repeat(2,1fr)}.filters,.history-tools{grid-template-columns:1fr 1fr}.material-summary{grid-template-columns:minmax(220px,2fr) repeat(2,1fr) 28px}.material-summary .optional{display:none}}
 @media(max-width:650px){.topbar{position:static;padding:15px;align-items:flex-start;flex-direction:column}.container{padding:13px}.kpis{grid-template-columns:1fr}.filters,.history-tools,.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.material-summary{grid-template-columns:1fr 1fr 24px}.material-summary .metric:nth-of-type(2),.material-summary .metric:nth-of-type(3),.material-summary .metric:nth-of-type(4){display:none}.tabs{overflow:auto}.top-actions{width:100%}}
-.kpi.clickable{cursor:pointer;transition:transform .12s,box-shadow .12s}
-.kpi.clickable:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(25,45,80,.15)}
-.kpi.clickable .value{text-decoration:underline;text-underline-offset:4px}
-.kpi .label small{color:#99a5ba;font-weight:400;font-size:11px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -61,8 +57,8 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <div class="kpis">
       <div class="kpi gray"><div class="label">物料种类</div><div class="value" id="kMaterials">0</div></div>
       <div class="kpi blue"><div class="label">采购总数量</div><div class="value" id="kPurchase">0</div></div>
-<div class="kpi green clickable" title="点击查看履历" onclick="openKpiFlowHistory('delivered')"><div class="label">累计已交付<small> 点击查看</small></div><div class="value" id="kDelivered">0</div></div>
-<div class="kpi orange clickable" title="点击查看履历" onclick="openKpiFlowHistory('transit')"><div class="label">在途数量<small> 点击查看</small></div><div class="value" id="kTransit">0</div></div>
+      <div class="kpi green"><div class="label">累计已交付</div><div class="value" id="kDelivered">0</div></div>
+      <div class="kpi orange"><div class="label">在途数量</div><div class="value" id="kTransit">0</div></div>
       <div class="kpi red"><div class="label">未交数量</div><div class="value" id="kOutstanding">0</div></div>
     </div>
     <div class="panel">
@@ -2335,44 +2331,7 @@ renderAll();
   saveState();
   renderOrders();
   renderHistory();
-  }
-
-  window.openKpiFlowHistory = function(type) {
-    ensureFlowData();
-    addEnhancementUI();
-    var modal = document.getElementById("flowHistoryModal");
-    if (!modal) return;
-    document.getElementById("flowHistoryTitle").textContent = type === "transit" ? "全局在途交付履历" : "全局累计已交付履历";
-    document.getElementById("flowOrderInfo").innerHTML = "<b>全局汇总</b>";
-    var pq = 0, dq = 0, tq = 0, oq = 0;
-    state.orders.forEach(function(o) { var d = derived(o); pq += d.purchaseQty; dq += d.deliveredQty; tq += d.transitQty; oq += d.outstandingQty; });
-    document.getElementById("flowPurchase").textContent = fmt(pq);
-    document.getElementById("flowDelivered").textContent = fmt(dq);
-    document.getElementById("flowTransit").textContent = fmt(tq);
-    document.getElementById("flowOutstanding").textContent = fmt(oq);
-    var head = document.getElementById("flowHistoryHead");
-    var body = document.getElementById("flowHistoryBody");
-    var empty = document.getElementById("flowHistoryEmpty");
-    var rows = [];
-    if (type === "transit") {
-      head.innerHTML = "<tr><th>物料编码</th><th>采购单号</th><th class=num>登记数量</th><th class=num>已到货</th><th class=num>当前在途</th><th>状态</th><th>备注</th><th>操作</th></tr>";
-      state.transitHistory.filter(function(i) { return qty(i.remainingQty) > 0; }).sort(function(a, b) { return String(b.deliveryDate).localeCompare(String(a.deliveryDate)) || String(b.createdAt).localeCompare(String(a.createdAt)); }).forEach(function(i) {
-        var s = getTransitStatus(i);
-        var r = receivedQuantity(i);
-        rows.push("<tr><td class=mono>" + esc(i.materialCode) + "</td><td>" + esc(i.poNumber) + "</td><td class=num>" + fmt(i.quantity) + "</td><td class='num success-text'>" + fmt(r) + "</td><td class=num style='color:var(--orange);font-weight:700'>" + fmt(i.remainingQty) + "</td><td><span class='flow-status " + s.className + "'>" + esc(s.text) + "</span></td><td>" + esc(i.note || i.source || "") + "</td><td><div class=flow-actions><button class='btn primary small' onclick=confirmTransitArrival('" + i.id + "')>确认到货</button><button class='btn danger small' onclick=deleteTransitDelivery('" + i.id + "')>删除登记</button></div></td></tr>");
-      });
-    } else {
-      head.innerHTML = "<tr><th>物料编码</th><th>采购单号</th><th>交付日期</th><th class=num>数量</th><th>状态</th><th>备注</th><th>操作</th></tr>";
-      state.deliveries.forEach(function(i) {
-        rows.push("<tr><td class=mono>" + esc(i.materialCode) + "</td><td>" + esc(i.poNumber) + "</td><td>" + esc(i.deliveryDate || "未提供") + "</td><td class='num success-text'>" + fmt(i.quantity) + "</td><td><span class='flow-status delivered'>累计已交</span></td><td>" + esc(i.note || i.source || "") + "</td><td><button class='btn danger small' onclick=deleteDelivery('" + i.id + "')>删除并回退</button></td></tr>");
-      });
-    }
-    body.innerHTML = rows.join("");
-    empty.style.display = rows.length ? "none" : "block";
-    modal.classList.add("show");
-  };
-
-  })();
+})();
 </script>
 
 <script>
