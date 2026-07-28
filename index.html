@@ -27,20 +27,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 </style>
 </head>
 <body>
-<div class="auth-page show" id="authPage">
-<div class="auth-container">
-  <div class="auth-header"><h2 id="authTitle">供应商订单与交付管理</h2><p id="authSubtitle">请登录以继续</p></div>
-  <div class="auth-body">
-    <div class="auth-error" id="authError"></div>
-    <div class="field"><label>用户名</label><input id="authUsername" class="input" placeholder="请输入用户名" autocomplete="username"></div>
-    <div class="field"><label>密码</label><input id="authPassword" class="input" type="password" placeholder="请输入密码" autocomplete="current-password"></div>
-    <div class="field" id="authConfirmField" style="display:none"><label>确认密码</label><input id="authConfirm" class="input" type="password" placeholder="请再次输入密码"></div>
-    <button class="btn primary" id="authSubmitBtn" onclick="handleAuth()">登 录</button>
-    <div class="auth-switch" id="authSwitch">还没有账户？<a onclick="toggleAuthMode()">立即注册</a></div>
-  </div>
-</div>
-</div>
-<div class="app" id="mainApp" style="display:none">
+<div class="app">
 <header class="topbar">
   <div class="brand"><h1>供应商订单与交付管理</h1><small>采购订单 · 在途 · 未交 · 交付履历</small></div>
   <div class="top-actions">
@@ -64,7 +51,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <button class="tab active" data-tab="orders" onclick="switchTab('orders')">订单总览</button>
     <button class="tab" data-tab="history" onclick="switchTab('history')">交付履历</button>
     <button class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">供应商管理</button>
-    <button class="tab" data-tab="users" id="adminTab" style="display:none" onclick="switchTab('users')">用户管理</button>
+    <button class="tab" data-tab="users" id="adminTab" onclick="switchTab('users')">用户管理</button>
     <button class="tab" data-tab="guide" onclick="switchTab('guide')">使用说明</button>
   </nav>
 
@@ -123,7 +110,7 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     </div>
   </section>
 
-  <section id="tab-users" style="display:none">
+  <section id="tab-users">
     <div class="panel">
       <div class="panel-head"><h2>用户管理</h2><div><button class="btn primary small" onclick="openUserModal()">+ 新增用户</button><button class="btn outline small" onclick="syncUsersFromSupabase()">同步</button></div></div>
       <div class="panel-body">
@@ -200,21 +187,8 @@ let fileMode = "";
 let openMaterials = new Set();
 var SUPABASE_URL="https://ifvzmbomwdupjgikcucy.supabase.co";
 var SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
-var AUTH_HDR={apikey:SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"};
-var currentUser=null;
-function getSession(){try{return JSON.parse(localStorage.getItem("app_session")||"null")}catch(e){return null}}
-function saveSession(s){localStorage.setItem("app_session",JSON.stringify(s))}
-function clearSession(){localStorage.removeItem("app_session");currentUser=null}
-function generateSalt(){var a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a).map(function(b){return b.toString(16).padStart(2,"0")}).join("")}
-async function hashPassword(pwd,salt){var e=new TextEncoder();var d=e.encode(pwd+salt);var h=await crypto.subtle.digest("SHA-256",d);return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,"0")}).join("")}
-async function supabaseRest(method,table,body,query){var url=SUPABASE_URL+"/rest/v1/"+table+(query||"");var opts={method:method,headers:Object.assign({},AUTH_HDR)};if(body){opts.body=JSON.stringify(body);opts.headers["Prefer"]="return=representation"}var resp=await fetch(url,opts);var text=await resp.text();try{return JSON.parse(text)}catch(e){throw new Error(text||resp.status+"")}}
-async function handleAuth(){var u=document.getElementById("authUsername").value.trim();var p=document.getElementById("authPassword").value;var isReg=document.getElementById("authConfirmField").style.display!=="none";var err=document.getElementById("authError");err.classList.remove("show");if(!u||!p){err.textContent="请填写用户名和密码";err.classList.add("show");return}if(isReg){var cf=document.getElementById("authConfirm").value;if(p!==cf){err.textContent="两次密码不一致";err.classList.add("show");return}if(p.length<4){err.textContent="密码至少4位";err.classList.add("show");return}}try{if(isReg){try{var ex=await supabaseRest("GET","app_users",null,"?username=eq."+encodeURIComponent(u)+"&select=id");if(ex&&ex.length>0){err.textContent="该用户名已被注册";err.classList.add("show");return}}catch(e){}var salt=generateSalt();var hash=await hashPassword(p,salt);var result=await supabaseRest("POST","app_users",{username:u,password_hash:salt+":"+hash,role:"viewer",supplier_codes:[]});currentUser=Array.isArray(result)?result[0]:result}else{var users=await supabaseRest("GET","app_users",null,"?username=eq."+encodeURIComponent(u)+"&select=*");if(!users||users.length===0){err.textContent="用户名或密码错误";err.classList.add("show");return}var user=users[0];var parts=user.password_hash.split(":");var hs=await hashPassword(p,parts[0]);if(hs!==parts.slice(1).join(":")){err.textContent="用户名或密码错误";err.classList.add("show");return}currentUser=user}saveSession({username:currentUser.username,role:currentUser.role,id:currentUser.id});showMainApp()}catch(e){err.textContent=(isReg?"注册失败":"登录失败")+"："+(e.message||e);err.classList.add("show")}}
-function toggleAuthMode(){var isReg=document.getElementById("authConfirmField").style.display!=="none";document.getElementById("authConfirmField").style.display=isReg?"none":"block";document.getElementById("authSubmitBtn").textContent=isReg?"登 录":"注 册";document.getElementById("authTitle").textContent="供应商订单与交付管理";document.getElementById("authSubtitle").textContent=isReg?"请登录以继续":"创建新账户";document.getElementById("authSwitch").innerHTML=isReg?'还没有账户？<a onclick="toggleAuthMode()">立即注册</a>':'已有账户？<a onclick="toggleAuthMode()">返回登录</a>';document.getElementById("authConfirm").value="";document.getElementById("authError").classList.remove("show")}
-function handleLogout(){clearSession();document.getElementById("authPage").classList.add("show");document.getElementById("mainApp").style.display="none";document.getElementById("authUsername").value="";document.getElementById("authPassword").value="";document.getElementById("authConfirm").value="";document.getElementById("authConfirmField").style.display="none";document.getElementById("authSubmitBtn").textContent="登 录";document.getElementById("authSubtitle").textContent="请登录以继续";document.getElementById("authSwitch").innerHTML='还没有账户？<a onclick="toggleAuthMode()">立即注册</a>';document.getElementById("authError").classList.remove("show")}
-function showMainApp(){document.getElementById("authPage").classList.remove("show");document.getElementById("mainApp").style.display="";updateUserDisplay();renderAll();loadSuppliersFromSupabase();if(currentUser.role==="admin"){document.getElementById("adminTab").style.display="";loadUsersFromSupabase()}else{document.getElementById("adminTab").style.display="none"}}
-function updateUserDisplay(){if(!currentUser)return;var d=document.getElementById("userInfoDisplay");if(!d)return;var r=currentUser.role==="admin"?"管理员":"供应商";d.innerHTML=currentUser.username+' <span class="user-role-badge">'+r+'</span> <button class="btn ghost small" onclick="handleLogout()">退出</button>'}
-function initAuth(){var s=getSession();if(s){currentUser=s;showMainApp()}}
-const nf = new Intl.NumberFormat("zh-CN",{maximumFractionDigits:3});
+var SUPABASE_HDR={apikey:SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"};
+async function supabaseRest(method,table,body,query){var url=SUPABASE_URL+"/rest/v1/"+table+(query||"");var opts={method:method,headers:Object.assign({},SUPABASE_HDR)};if(body){opts.body=JSON.stringify(body);opts.headers["Prefer"]="return=representation"}var resp=await fetch(url,opts);var text=await resp.text();try{return JSON.parse(text)}catch(e){throw new Error(text||resp.status+"")}}
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function loadState(){
@@ -444,9 +418,15 @@ function resetAll(){
   if(!confirm("确认清除所有新增订单与交付履历，并恢复为上传Excel的原始数据吗？此操作不可撤销。"))return;
   state=clone(SEED);saveState();openMaterials.clear();renderAll();toast("已恢复原始Excel数据");
 }
-function renderAll(){populateMaterialSelects();renderOrders();renderHistory()}
+function loadSuppliersFromSupabase(){supabaseRest("GET","suppliers",null,"?select=*&order=created_at.desc").then(function(data){window._suppliers=data||[];renderSuppliers()}).catch(function(){window._suppliers=window._suppliers||[];renderSuppliers()})}
+function renderSuppliers(){var b=document.getElementById("supplierBody");var e=document.getElementById("supplierEmpty");if(!b)return;var s=window._suppliers||[];if(!s.length){b.innerHTML="";e.style.display="block";return}e.style.display="none";b.innerHTML=s.map(function(x){return'<tr><td class="mono">'+esc(x.code)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.contact||"")+'</td><td>'+esc(x.phone||"")+'</td><td>'+esc(x.address||"")+'</td><td>'+esc(x.notes||"")+'</td><td><button class="btn outline small" onclick="editSupplier(\''+x.id+'\')">编辑</button> <button class="btn danger small" onclick="deleteSupplier(\''+x.id+'\')">删除</button></td></tr>'}).join("")}
+function openSupplierModal(id){if(id){var s=(window._suppliers||[]).find(function(x){return x.id===id});if(!s)return;document.getElementById("supplierModalTitle").textContent="编辑供应商";document.getElementById("supplierEditId").value=s.id;document.getElementById("supplierCode").value=s.code||"";document.getElementById("supplierName").value=s.name||"";document.getElementById("supplierContact").value=s.contact||"";document.getElementById("supplierPhone").value=s.phone||"";document.getElementById("supplierAddress").value=s.address||"";document.getElementById("supplierNotes").value=s.notes||""}else{document.getElementById("supplierModalTitle").textContent="新增供应商";document.getElementById("supplierEditId").value="";document.getElementById("supplierCode").value="";document.getElementById("supplierName").value="";document.getElementById("supplierContact").value="";document.getElementById("supplierPhone").value="";document.getElementById("supplierAddress").value="";document.getElementById("supplierNotes").value=""}document.getElementById("supplierModal").classList.add("show")}
+function editSupplier(id){openSupplierModal(id)}
+async function saveSupplier(){var eid=document.getElementById("supplierEditId").value;var code=document.getElementById("supplierCode").value.trim();var name=document.getElementById("supplierName").value.trim();if(!code||!name){toast("请填写供应商编码和名称","error");return}var data={code:code,name:name,contact:document.getElementById("supplierContact").value.trim(),phone:document.getElementById("supplierPhone").value.trim(),address:document.getElementById("supplierAddress").value.trim(),notes:document.getElementById("supplierNotes").value.trim()};try{if(eid){await supabaseRest("PATCH","suppliers",data,"?id=eq."+encodeURIComponent(eid))}else{await supabaseRest("POST","suppliers",data)}closeModal("supplierModal");loadSuppliersFromSupabase();toast(eid?"供应商已更新":"供应商已创建")}catch(e){toast("保存失败："+(e.message||e),"error")}}
+async function deleteSupplier(id){if(!confirm("确认删除该供应商吗？"))return;try{await supabaseRest("DELETE","suppliers",null,"?id=eq."+encodeURIComponent(id));loadSuppliersFromSupabase();toast("供应商已删除")}catch(e){toast("删除失败："+(e.message||e),"error")}}
+function renderAll(){populateMaterialSelects();renderOrders();renderHistory();loadSuppliersFromSupabase()}
   document.querySelectorAll(".modal-backdrop").forEach(x=>x.addEventListener("click",e=>{if(e.target===x)x.classList.remove("show")}));
-initAuth();
+renderAll();
 </script>
 <!-- 供应商订单与交付管理：完整合并修正版 -->
 <style>
