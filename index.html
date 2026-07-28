@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>供应商订单与交付管理</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><!-- Supabase REST API used directly (no CDN client needed) -->
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f3f6fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#dfe5ef;--brand:#165dff;--brand2:#0b47ca;--green:#0e9f6e;--orange:#f79009;--red:#e5484d;--nav:#12213d;--shadow:0 8px 24px rgba(25,45,80,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:14px}
@@ -24,20 +24,70 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 .dropdown{position:relative}.menu{display:none;position:absolute;right:0;top:44px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);min-width:190px;overflow:hidden;z-index:30}.menu.show{display:block}.menu button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:11px 14px;cursor:pointer;color:#26344e}.menu button:hover{background:#f3f6fb}.file-input{display:none}.import-result{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:7px;margin-top:12px}.import-result div{padding:7px 10px;border-bottom:1px solid #eee}.import-result div:last-child{border:0}
 @media(max-width:1050px){.kpis{grid-template-columns:repeat(2,1fr)}.filters,.history-tools{grid-template-columns:1fr 1fr}.material-summary{grid-template-columns:minmax(220px,2fr) repeat(2,1fr) 28px}.material-summary .optional{display:none}}
 @media(max-width:650px){.topbar{position:static;padding:15px;align-items:flex-start;flex-direction:column}.container{padding:13px}.kpis{grid-template-columns:1fr}.filters,.history-tools,.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.material-summary{grid-template-columns:1fr 1fr 24px}.material-summary .metric:nth-of-type(2),.material-summary .metric:nth-of-type(3),.material-summary .metric:nth-of-type(4){display:none}.tabs{overflow:auto}.top-actions{width:100%}}
+
+/* Auth */
+.auth-page{display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f1d36,#1a3357);padding:20px}
+.auth-page.show{display:flex}
+.auth-container{background:#fff;border-radius:14px;box-shadow:0 24px 64px rgba(0,0,0,.35);width:min(420px,100%);overflow:hidden}
+.auth-header{background:linear-gradient(120deg,#12213d,#173666);color:#fff;padding:28px 30px 22px;text-align:center}
+.auth-header h2{margin:0 0 6px;font-size:22px}
+.auth-header p{color:#c9d6ed;margin:0;font-size:13px}
+.auth-body{padding:28px 30px}
+.auth-body .field{margin-bottom:16px}
+.auth-body .btn{width:100%;padding:12px;font-size:15px;margin-top:6px}
+.auth-switch{text-align:center;margin-top:16px;color:var(--muted);font-size:13px}
+.auth-switch a{color:var(--brand);cursor:pointer;text-decoration:underline;font-weight:600}
+.auth-error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:10px 13px;font-size:13px;margin-bottom:14px;display:none}
+.auth-error.show{display:block}
+/* Supplier */
+.supplier-table-wrap{overflow:auto;max-height:60vh}
+.supplier-table-wrap table{min-width:800px}
+.supplier-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#eef2f7;color:#536078}
+/* Admin */
+.admin-table-wrap{overflow:auto;max-height:50vh}
+.admin-table-wrap table{min-width:700px}
+.user-role{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.user-role.admin{background:#fef3c7;color:#92400e}
+.user-role.viewer{background:#e8f0ff;color:#2458bd}
+/* KPI clickable */
+.kpi.clickable{cursor:pointer;transition:transform .12s,box-shadow .12s}
+.kpi.clickable:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(25,45,80,.15)}
+.kpi.clickable .value{text-decoration:underline;text-underline-offset:4px}
+.kpi .label small{color:#99a5ba;font-weight:400;font-size:11px;margin-left:4px}
+/* User info topbar */
+.user-info{display:flex;align-items:center;gap:10px;font-size:13px}
+.user-info .user-role-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(255,255,255,.18)}
 </style>
+
 </head>
 <body>
-<div class="app">
+<div class="auth-page show" id="authPage">
+<div class="auth-container">
+  <div class="auth-header"><h2 id="authTitle">??????????</h2><p id="authSubtitle">??????</p></div>
+  <div class="auth-body">
+    <div class="auth-error" id="authError"></div>
+    <div class="field"><label>???</label><input id="authUsername" class="input" placeholder="??????" autocomplete="username"></div>
+    <div class="field"><label>??</label><input id="authPassword" class="input" type="password" placeholder="?????" autocomplete="current-password"></div>
+    <div class="field" id="authConfirmField" style="display:none"><label>????</label><input id="authConfirm" class="input" type="password" placeholder="???????"></div>
+    <button class="btn primary" id="authSubmitBtn" onclick="handleAuth()">? ?</button>
+    <div class="auth-switch" id="authSwitch">??????<a onclick="toggleAuthMode()">????</a></div>
+  </div>
+</div>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
 <header class="topbar">
   <div class="brand"><h1>供应商订单与交付管理</h1><small>采购订单 · 在途 · 未交 · 交付履历</small></div>
-  <div class="top-actions">
+  <span class="user-info" id="userInfoDisplay"></span>
+    <div class="top-actions">
     <button class="btn ghost" onclick="openDeliveryModal()">＋ 登记交付</button>
-    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步中...</button>
+    <button class="btn ghost" onclick="openOrderModal()">＋ 新增采购订单</button><button class="btn ghost" id="syncStatusBtn" onclick="syncNow()" title="点击同步">☁ 同步</button>
     <div class="dropdown"><button class="btn primary" onclick="toggleMenu(event)">导入 / 导出 ▾</button>
       <div id="ioMenu" class="menu">
         <button onclick="pickFile('delivery')">导入交付记录</button>
         <button onclick="pickFile('order')">导入采购订单</button>
         <button onclick="downloadDeliveryTemplate()">下载交付导入模板</button>
+        <button onclick="downloadOrderTemplate()">下载采购订单模板</button>
         <button onclick="exportWorkbook()">导出当前数据</button>
         <button onclick="exportBackup()">备份数据（JSON）</button>
         <button onclick="pickFile('backup')">恢复备份</button>
@@ -48,8 +98,11 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
 </header>
 <main class="container">
   <nav class="tabs">
+  <nav class="tabs">
     <button class="tab active" data-tab="orders" onclick="switchTab('orders')">订单总览</button>
     <button class="tab" data-tab="history" onclick="switchTab('history')">交付履历</button>
+    <button class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">供应商管理</button>
+    <button class="tab" data-tab="users" id="adminTab" style="display:none" onclick="switchTab('users')">用户管理</button>
     <button class="tab" data-tab="guide" onclick="switchTab('guide')">使用说明</button>
   </nav>
 
@@ -57,8 +110,8 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     <div class="kpis">
       <div class="kpi gray"><div class="label">物料种类</div><div class="value" id="kMaterials">0</div></div>
       <div class="kpi blue"><div class="label">采购总数量</div><div class="value" id="kPurchase">0</div></div>
-      <div class="kpi green"><div class="label">累计已交付</div><div class="value" id="kDelivered">0</div></div>
-      <div class="kpi orange"><div class="label">在途数量</div><div class="value" id="kTransit">0</div></div>
+      <div class="kpi green clickable" title="点击查看所有物料累计已交付履历" onclick="openKpiFlowHistory('delivered')"><div class="label">累计已交付<small>点击查看</small></div><div class="value" id="kDelivered">0</div></div>
+      <div class="kpi orange clickable" title="点击查看所有物料在途交付履历" onclick="openKpiFlowHistory('transit')"><div class="label">在途数量<small>点击查看</small></div><div class="value" id="kTransit">0</div></div>
       <div class="kpi red"><div class="label">未交数量</div><div class="value" id="kOutstanding">0</div></div>
     </div>
     <div class="panel">
@@ -95,6 +148,34 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
     </div>
   </section>
 
+  
+  <section id="tab-suppliers" style="display:none">
+    <div class="panel">
+      <div class="panel-head"><h2>?????</h2><button class="btn primary small" onclick="openSupplierModal()">+ ?????</button></div>
+      <div class="panel-body">
+        <div class="supplier-table-wrap"><table>
+          <thead><tr><th>?????</th><th>?????</th><th>???</th><th>??</th><th>??</th><th>??</th><th>??</th></tr></thead>
+          <tbody id="supplierBody"></tbody>
+        </table></div>
+        <div id="supplierEmpty" class="empty" style="display:none">????????</div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section id="tab-users" style="display:none">
+    <div class="panel">
+      <div class="panel-head"><h2>????</h2><div><button class="btn primary small" onclick="openUserModal()">+ ????</button><button class="btn outline small" onclick="syncUsersFromSupabase()">??</button></div></div>
+      <div class="panel-body">
+        <div class="admin-table-wrap"><table>
+          <thead><tr><th>???</th><th>??</th><th>?????</th><th>????</th><th>??</th></tr></thead>
+          <tbody id="userManagementBody"></tbody>
+        </table></div>
+        <div id="userManagementEmpty" class="empty" style="display:none">???????</div>
+      </div>
+    </div>
+  </section>
+
   <section id="tab-guide" style="display:none">
     <div class="panel"><div class="panel-head"><h2>使用说明</h2></div><div class="panel-body" style="line-height:1.9">
       <ol>
@@ -109,6 +190,54 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
   </section>
 </main>
 </div>
+
+
+<div id="supplierModal" class="modal-backdrop"><div class="modal">
+  <div class="modal-head"><h3 id="supplierModalTitle">?????</h3><button class="close" onclick="closeModal('supplierModal')">x</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="supplierEditId">
+    <div class="form-grid">
+      <div class="field"><label class="required">?????</label><input id="supplierCode" class="input" placeholder="? SUP001"></div>
+      <div class="field"><label class="required">?????</label><input id="supplierName" class="input" placeholder="?????"></div>
+      <div class="field"><label>???</label><input id="supplierContact" class="input"></div>
+      <div class="field"><label>??</label><input id="supplierPhone" class="input"></div>
+      <div class="field span2"><label>??</label><input id="supplierAddress" class="input"></div>
+      <div class="field span2"><label>??</label><textarea id="supplierNotes" class="input" rows="2"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn outline" onclick="closeModal('supplierModal')">??</button>
+    <button class="btn primary" onclick="saveSupplier()">??</button>
+  </div>
+</div></div>
+<div id="userModal" class="modal-backdrop"><div class="modal">
+  <div class="modal-head"><h3 id="userModalTitle">????</h3><button class="close" onclick="closeModal('userModal')">x</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="userEditId">
+    <div class="form-grid">
+      <div class="field"><label class="required">???</label><input id="userEditUsername" class="input" placeholder="???"></div>
+      <div class="field"><label class="required">??</label><input id="userEditPassword" class="input" type="password" placeholder="?????4?"></div>
+      <div class="field"><label>??</label><select id="userEditRole" class="input"><option value="viewer">????viewer?</option><option value="admin">????admin?</option></select></div>
+      <div class="field"><label>?????</label><input id="userEditSupplierCodes" class="input" placeholder="?????????????????=??"></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn outline" onclick="closeModal('userModal')">??</button>
+    <button class="btn primary" onclick="saveUser()">??</button>
+  </div>
+</div></div>
+<div id="resetPwdModal" class="modal-backdrop"><div class="modal">
+  <div class="modal-head"><h3>????</h3><button class="close" onclick="closeModal('resetPwdModal')">x</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="resetPwdTargetUser">
+    <div class="field"><label id="resetPwdLabel">???????</label></div>
+    <div class="field"><label>???</label><input id="resetPwdNew" class="input" type="password" placeholder="????????4?"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn outline" onclick="closeModal('resetPwdModal')">??</button>
+    <button class="btn primary" onclick="resetUserPassword()">????</button>
+  </div>
+</div></div>
 
 <input id="filePicker" class="file-input" type="file" accept=".xlsx,.xls,.csv,.json" onchange="handleFile(this.files[0])">
 
@@ -138,7 +267,8 @@ table{width:100%;border-collapse:collapse;min-width:950px}th{background:#f5f7fb;
       <div class="field"><label class="required">下单日期</label><input id="oDate" type="date" class="input"></div>
       <div class="field"><label class="required">采购数量</label><input id="oQty" type="number" min="0.000001" step="any" class="input"></div>
       <div class="field"><label>初始在途数量</label><input id="oTransit" type="number" min="0" step="any" value="0" class="input"></div>
-      <div class="field span2"><div class="help">新增订单的初始未交数量 = 采购数量 − 初始在途数量。初始在途数量不能超过采购数量。</div></div>
+      <div class="field"><label>基地</label><select id="oBase" class="input"><option value="">未选择</option><option value="大理平">大理平</option><option value="剪市">剪市</option><option value="龙潭">龙潭</option><option value="泥窝潭">泥窝潭</option></select></div>
+    <div class="field span2"><div class="help">新增订单的初始未交数量 = 采购数量 − 初始在途数量。初始在途数量不能超过采购数量。</div></div>
     </div>
   </div>
   <div class="modal-foot"><button class="btn outline" onclick="closeModal('orderModal')">取消</button><button class="btn primary" onclick="saveOrder()">新增订单</button></div>
@@ -157,18 +287,161 @@ const STORAGE_KEY = "supplier_order_delivery_manager_v1";
 let state = loadState();
 let fileMode = "";
 let openMaterials = new Set();
+/* ?? Auth Module ?? */
+const SUPABASE_URL = "https://ifvzmbomwdupjgikcucy.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
+const AUTH_HDR = {apikey: SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json"};
+
+let currentUser = null;
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem("supplier_app_session") || "null"); } catch(e) { return null; }
+}
+function saveSession(session) { localStorage.setItem("supplier_app_session", JSON.stringify(session)); }
+function clearSession() { localStorage.removeItem("supplier_app_session"); currentUser = null; }
+
+function generateSalt() {
+  var arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+async function hashPassword(password, salt) {
+  var encoder = new TextEncoder();
+  var data = encoder.encode(password + salt);
+  var hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+async function supabaseRest(method, table, body, query) {
+  var url = SUPABASE_URL + "/rest/v1/" + table + (query || "");
+  var opts = {method: method, headers: Object.assign({}, AUTH_HDR)};
+  if (body) { opts.body = JSON.stringify(body); opts.headers["Prefer"] = "return=representation"; }
+  var resp = await fetch(url, opts);
+  var text = await resp.text();
+  try { return JSON.parse(text); } catch(e) { throw new Error(text || resp.status + ""); }
+}
+
+async function handleAuth() {
+  var username = document.getElementById("authUsername").value.trim();
+  var password = document.getElementById("authPassword").value;
+  var isRegister = document.getElementById("authConfirmField").style.display !== "none";
+  var errEl = document.getElementById("authError");
+  errEl.classList.remove("show");
+
+  if (!username || !password) { errEl.textContent = "?????????"; errEl.classList.add("show"); return; }
+  if (isRegister) {
+    var confirm = document.getElementById("authConfirm").value;
+    if (password !== confirm) { errEl.textContent = "???????"; errEl.classList.add("show"); return; }
+    if (password.length < 4) { errEl.textContent = "????4?"; errEl.classList.add("show"); return; }
+  }
+
+  try {
+    if (isRegister) {
+      // Check if username exists
+      try {
+        var existing = await supabaseRest("GET", "app_users", null, "?username=eq." + encodeURIComponent(username) + "&select=id");
+        if (existing && existing.length > 0) { errEl.textContent = "????????"; errEl.classList.add("show"); return; }
+      } catch(e) {}
+
+      var salt = generateSalt();
+      var hash = await hashPassword(password, salt);
+      var result = await supabaseRest("POST", "app_users", {
+        username: username,
+        password_hash: salt + ":" + hash,
+        role: "viewer",
+        supplier_codes: []
+      });
+      currentUser = Array.isArray(result) ? result[0] : result;
+    } else {
+      // Login
+      var users = await supabaseRest("GET", "app_users", null, "?username=eq." + encodeURIComponent(username) + "&select=*");
+      if (!users || users.length === 0) { errEl.textContent = "????????"; errEl.classList.add("show"); return; }
+      var user = users[0];
+      var parts = user.password_hash.split(":");
+      var salt = parts[0];
+      var storedHash = parts.slice(1).join(":");
+      var inputHash = await hashPassword(password, salt);
+      if (inputHash !== storedHash) { errEl.textContent = "????????"; errEl.classList.add("show"); return; }
+      currentUser = user;
+    }
+    saveSession({username: currentUser.username, role: currentUser.role, id: currentUser.id});
+    showMainApp();
+  } catch(e) {
+    errEl.textContent = (isRegister ? "????" : "????") + "?" + (e.message || e);
+    errEl.classList.add("show");
+  }
+}
+
+function toggleAuthMode() {
+  var isRegister = document.getElementById("authConfirmField").style.display !== "none";
+  document.getElementById("authConfirmField").style.display = isRegister ? "none" : "block";
+  document.getElementById("authSubmitBtn").textContent = isRegister ? "? ?" : "? ?";
+  document.getElementById("authTitle").textContent = "??????????";
+  document.getElementById("authSubtitle").textContent = isRegister ? "??????" : "?????";
+  document.getElementById("authSwitch").innerHTML = isRegister ? '??????<a onclick="toggleAuthMode()">????</a>' : '?????<a onclick="toggleAuthMode()">????</a>';
+  document.getElementById("authConfirm").value = "";
+  document.getElementById("authError").classList.remove("show");
+}
+
+function handleLogout() {
+  clearSession();
+  document.getElementById("authPage").classList.add("show");
+  document.getElementById("mainApp").style.display = "none";
+  document.getElementById("authUsername").value = "";
+  document.getElementById("authPassword").value = "";
+  document.getElementById("authConfirm").value = "";
+  document.getElementById("authConfirmField").style.display = "none";
+  document.getElementById("authSubmitBtn").textContent = "? ?";
+  document.getElementById("authSubtitle").textContent = "??????";
+  document.getElementById("authSwitch").innerHTML = '??????<a onclick="toggleAuthMode()">????</a>';
+  document.getElementById("authError").classList.remove("show");
+}
+
+function showMainApp() {
+  document.getElementById("authPage").classList.remove("show");
+  document.getElementById("mainApp").style.display = "";
+  updateUserDisplay();
+  renderAll();
+  loadSuppliersFromSupabase();
+  if (currentUser.role === "admin") {
+    document.getElementById("adminTab").style.display = "";
+    loadUsersFromSupabase();
+  } else {
+    document.getElementById("adminTab").style.display = "none";
+  }
+}
+
+function updateUserDisplay() {
+  if (!currentUser) return;
+  var display = document.getElementById("userInfoDisplay");
+  var roleLabel = currentUser.role === "admin" ? "???" : "???";
+  display.innerHTML = currentUser.username + ' <span class="user-role-badge">' + roleLabel + '</span> <button class="btn ghost small" onclick="handleLogout()">??</button>';
+}
+
+function initAuth() {
+  var session = getSession();
+  if (session) {
+    currentUser = session;
+    showMainApp();
+  }
+}
+
 const nf = new Intl.NumberFormat("zh-CN",{maximumFractionDigits:3});
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function loadState(){
   try{
     const saved=localStorage.getItem(STORAGE_KEY);
-    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries))return d}
+    if(saved){const d=JSON.parse(saved);if(Array.isArray(d.orders)&&Array.isArray(d.deliveries)){for(var _i=0;_i<d.orders.length;_i++){if(!d.orders[_i].base)d.orders[_i].base="";if(!d.orders[_i].baseHistory)d.orders[_i].baseHistory=[]}return d}}
   }catch(e){}
   return clone(SEED);
 }
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));window.__supabaseSync&&window.__supabaseSync()}
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){}if(window.__supabaseSync)window.__supabaseSync()}
 function uid(prefix){return prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
+function baseCell(o){var b=o.base||"";return"<span class=\"base-link\" onclick=\"editBase('"+o.id+"')\" style=\"cursor:pointer;border-bottom:1px dashed var(--brand);color:"+(b?"var(--brand)":"#98a2b3")+"\">"+esc(b||"未设置")+"</span>"}
+function editBase(id){var o=state.orders.find(function(x){return x.id===id});if(!o)return;var bb=o.base||"";var m=document.createElement("div");m.className="modal-backdrop show";m.onclick=function(e){if(e.target===this)m.remove()};var h="<div class=\"modal\" style=\"width:350px\"><div class=\"modal-head\"><h3>选择基地</h3><button class=\"close\" onclick=\"this.parentElement.parentElement.parentElement.remove()\">×</button></div><div class=\"modal-body\">";var bases=["大理平","剪市","龙潭","泥窝潭"];for(var i=0;i<bases.length;i++){var v=bases[i];var hl=(bb===v);h+="<div style=\"padding:10px 12px;cursor:pointer;border-radius:6px;margin:4px 0"+(hl?";background:var(--brand);color:#fff":";background:#f3f6fb")+"\" onclick=\"confirmBase('"+id+"','"+v+"')\" data-val=\"\">"+v+(hl?" ✓":"")+"</div>"}h+="<div style=\"margin-top:12px;padding-top:12px;border-top:1px solid #eee;color:var(--muted);font-size:12px\">当前基地: <strong>"+esc(bb||"未设置")+"</strong></div></div></div>";m.innerHTML=h;document.body.appendChild(m)}
+function confirmBase(id,v){var o=state.orders.find(function(x){return x.id===id});if(!o)return;if(o.base===v){var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();return}if(!confirm("将基地从 \""+(o.base||"未设置")+"\" 改为 \""+v+"\"，确认？"))return;if(!o.baseHistory)o.baseHistory=[];o.baseHistory.push({from:o.base||"",to:v,date:new Date().toLocaleString("zh-CN")});o.base=v;saveState();renderOrders();var ms=document.querySelectorAll(".modal-backdrop");for(var j=0;j<ms.length;j++)ms[j].remove();toast("基地已更改为 "+v)}
 function today(){return new Date().toISOString().slice(0,10)}
 function qty(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function fmt(v){return nf.format(qty(v))}
@@ -223,9 +496,9 @@ function renderOrders(){
       const stat=o.outstandingQty>0?'<span class="badge open">有未交</span>':(o.transitQty>0?'<span class="badge transit">在途</span>':'<span class="badge done">已完成</span>');
       const canDelete=!String(o.id).startsWith("excel-");
       const deleteBtn=canDelete?`<button class="btn danger small" onclick="event.stopPropagation();deleteOrder('${o.id}')">删除订单</button>`:"";
-      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal('${o.id}')">登记交付</button>':'<span class="zero" style="font-size:12px">无需交付</span>'}${deleteBtn}</div></td></tr>`;
+      return `<tr><td class="mono">${esc(o.poNumber)}</td><td>${esc(o.orderDate)}</td><td class="num">${fmt(o.purchaseQty)}</td><td class="num success-text">${fmt(o.deliveredQty)}</td><td class="num">${fmt(o.transitQty)}</td><td class="num ${o.outstandingQty>0?"danger-text":"zero"}">${fmt(o.outstandingQty)}</td><td>${baseCell(o)}</td><td>${stat}</td><td><div class="progress" title="已交付 ${pct.toFixed(1)}%"><i style="width:${pct}%"></i></div></td><td><div class="order-actions">${o.outstandingQty>0?'<button class="btn primary small" onclick="event.stopPropagation();openDeliveryModal(\'+o.id+\')" data-order-id="'+o.id+'">登记交付</button>':'<span class=\"zero\" style=\"font-size:12px\">无需交付</span>'}${deleteBtn}</div></td></tr>`;
     }).join("");
-    box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    box.innerHTML=`<div class="material-summary" onclick="toggleMaterial('${esc(code)}')"><div class="material-title"><strong>${esc(code)}</strong><span title="${esc(g.name)}">${esc(g.name)}</span></div><div class="metric"><small>采购</small><b>${fmt(sums.p)}</b></div><div class="metric optional"><small>已交</small><b class="success-text">${fmt(sums.d)}</b></div><div class="metric optional"><small>在途</small><b>${fmt(sums.t)}</b></div><div class="metric"><small>未交</small><b class="${sums.o?"danger-text":"zero"}">${fmt(sums.o)}</b></div><span class="chev">›</span></div><div class="order-wrap"><table><thead><tr><th>采购单号</th><th>下单日期</th><th class="num">采购数量</th><th class="num">累计已交</th><th class="num">在途数量</th><th class="num">未交数量</th><th>基地</th><th>状态</th><th>交付进度</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     root.appendChild(box);idx++;
   }
 }
@@ -238,18 +511,20 @@ function populateMaterialSelects(){
   const ms=materials(), options=ms.map(m=>`<option value="${esc(m.code)}">${esc(m.code)}｜${esc(m.name)}</option>`).join("");
   document.getElementById("dMaterial").innerHTML=options;document.getElementById("oMaterial").innerHTML=options;
 }
-function openDeliveryModal(orderId=""){
-  populateMaterialSelects();
-  let o=orderId?state.orders.find(x=>x.id===orderId):state.orders.find(x=>derived(x).outstandingQty>0);
-  if(o)document.getElementById("dMaterial").value=o.materialCode;
-  refreshPoOptions(o?o.id:"");
-  document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
+function openDeliveryModal(orderId){
+  try{
+    populateMaterialSelects();
+    var o=orderId?state.orders.find(function(x){return x.id===orderId}):state.orders.find(function(x){return derived(x).outstandingQty>0});
+    
+    if(o){document.getElementById("dMaterial").value=o.materialCode;var dx=derived(o);var s=document.getElementById("dPo");s.innerHTML="<option value=\""+o.id+"\" selected>"+esc(o.poNumber)+"｜"+esc(o.orderDate)+"｜未交 "+fmt(dx.outstandingQty)+"</option>";showOrderBalance()}
+    document.getElementById("dQty").value="";document.getElementById("dDate").value=today();document.getElementById("dNote").value="";
   document.getElementById("deliveryModal").classList.add("show");
-}
-function refreshPoOptions(preselect=""){
+}catch(e){toast("打开失败:"+e.message,"error")}}
+function refreshPoOptions(preselect){
+  if(typeof preselect==="undefined")preselect="";
   const code=document.getElementById("dMaterial").value;
-  const os=state.orders.filter(o=>o.materialCode===code).map(derived).sort((a,b)=>a.orderDate.localeCompare(b.orderDate));
-  document.getElementById("dPo").innerHTML=os.map(o=>`<option value="${o.id}" ${o.id===preselect?"selected":""}>${esc(o.poNumber)}｜${esc(o.orderDate)}｜未交 ${fmt(o.outstandingQty)}</option>`).join("");
+  const os=state.orders.filter(function(o){return o.materialCode===code}).map(derived).sort(function(a,b){return a.orderDate.localeCompare(b.orderDate)});
+  document.getElementById("dPo").innerHTML=os.map(function(o){return"<option value=\""+o.id+"\""+(o.id===preselect?" selected":"")+">"+esc(o.poNumber)+"｜"+esc(o.orderDate)+"｜未交 "+fmt(o.outstandingQty)+"</option>"}).join("");
   showOrderBalance();
 }
 function showOrderBalance(){
@@ -281,7 +556,7 @@ function saveOrder(){
   if(!code||!name||!po||!date||p<=0){toast("请完整填写必填字段","error");return}
   if(t<0||t>p){toast("初始在途数量必须在 0 到采购数量之间","error");return}
   if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){toast("该物料下已存在相同采购单号","error");return}
-  state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,createdAt:new Date().toLocaleString("zh-CN")});
+  var bSel=document.getElementById("oBase").value;state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:bSel,baseHistory:[],createdAt:new Date().toLocaleString("zh-CN")});
   saveState();openMaterials.add(code);closeModal("orderModal");renderOrders();toast("采购订单已新增，未交数量已增加");
 }
 function deleteOrder(id){
@@ -357,7 +632,7 @@ function importOrders(rows){
     if(!code||!name||!po||!date||p<=0){errors.push(`第 ${i+2} 行：必填字段不完整或采购数量无效`);return}
     if(t<0||t>p){errors.push(`第 ${i+2} 行：在途数量无效`);return}
     if(state.orders.some(o=>o.materialCode===code&&o.poNumber===po)){errors.push(`第 ${i+2} 行：该物料采购单已存在`);return}
-    state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});ok++;
+    var bVal=String(getVal(r,["基地","base"])).trim()||"";state.orders.push({id:uid("order"),materialCode:code,materialName:name,poNumber:po,orderDate:date,purchaseQty:p,baseDeliveredQty:0,transitQty:t,initialOutstandingQty:p-t,base:bVal,baseHistory:[],createdAt:"批量导入 "+new Date().toLocaleString("zh-CN")});ok++;
   });
   saveState();renderAll();showImportResult(ok,errors);
 }
@@ -373,6 +648,9 @@ function downloadText(name,text,type="text/csv;charset=utf-8"){
 function downloadDeliveryTemplate(){
   downloadText("交付导入模板.csv","物料编码,采购单号,交付数量,交付日期,备注\nASMXC1000072,PO2606010019,100,2026-08-01,送货单示例");
 }
+function downloadOrderTemplate(){
+  downloadText("采购订单导入模板.csv","物料编码,物料名称,采购单号,下单日期,采购数量,在途数量,基地\nASMXC1000072,线材蓝色PVC单条线,PO2608010001,2026-08-01,1000,0,大理平");
+}
 function exportWorkbook(){
   const orderRows=state.orders.map(o=>{const x=derived(o);return{"物料编码":o.materialCode,"物料名称":o.materialName,"采购单号":o.poNumber,"下单日期":o.orderDate,"采购数量":o.purchaseQty,"累计已交付数量":x.deliveredQty,"在途数量":o.transitQty,"未交数量":x.outstandingQty}});
   const deliveryRows=state.deliveries.map(d=>({"交付日期":d.deliveryDate,"物料编码":d.materialCode,"物料名称":d.materialName,"采购单号":d.poNumber,"交付数量":d.quantity,"备注":d.note,"录入方式":d.source,"录入时间":d.createdAt}));
@@ -387,9 +665,275 @@ function resetAll(){
   if(!confirm("确认清除所有新增订单与交付履历，并恢复为上传Excel的原始数据吗？此操作不可撤销。"))return;
   state=clone(SEED);saveState();openMaterials.clear();renderAll();toast("已恢复原始Excel数据");
 }
+
+/* ?? Supplier Management ?? */
+function loadSuppliersFromSupabase() {
+  supabaseRest("GET", "suppliers", null, "?select=*&order=created_at.desc").then(data => {
+    window._suppliers = data || [];
+    renderSuppliers();
+  }).catch(() => {
+    window._suppliers = window._suppliers || [];
+    renderSuppliers();
+  });
+}
+
+function renderSuppliers() {
+  var body = document.getElementById("supplierBody");
+  var empty = document.getElementById("supplierEmpty");
+  if (!body) return;
+  var suppliers = window._suppliers || [];
+  if (!suppliers.length) { body.innerHTML = ""; empty.style.display = "block"; return; }
+  empty.style.display = "none";
+  body.innerHTML = suppliers.map(function(s) {
+    return '<tr><td class="mono">' + esc(s.code) + '</td><td>' + esc(s.name) + '</td><td>' + esc(s.contact||"") + '</td><td>' + esc(s.phone||"") + '</td><td>' + esc(s.address||"") + '</td><td>' + esc(s.notes||"") + '</td><td><button class="btn outline small" onclick="editSupplier('' + s.id + '')">??</button> <button class="btn danger small" onclick="deleteSupplier('' + s.id + '')">??</button></td></tr>';
+  }).join("");
+}
+
+function openSupplierModal(id) {
+  if (id) {
+    var s = (window._suppliers||[]).find(function(x) { return x.id === id; });
+    if (!s) return;
+    document.getElementById("supplierModalTitle").textContent = "?????";
+    document.getElementById("supplierEditId").value = s.id;
+    document.getElementById("supplierCode").value = s.code || "";
+    document.getElementById("supplierName").value = s.name || "";
+    document.getElementById("supplierContact").value = s.contact || "";
+    document.getElementById("supplierPhone").value = s.phone || "";
+    document.getElementById("supplierAddress").value = s.address || "";
+    document.getElementById("supplierNotes").value = s.notes || "";
+  } else {
+    document.getElementById("supplierModalTitle").textContent = "?????";
+    document.getElementById("supplierEditId").value = "";
+    document.getElementById("supplierCode").value = "";
+    document.getElementById("supplierName").value = "";
+    document.getElementById("supplierContact").value = "";
+    document.getElementById("supplierPhone").value = "";
+    document.getElementById("supplierAddress").value = "";
+    document.getElementById("supplierNotes").value = "";
+  }
+  document.getElementById("supplierModal").classList.add("show");
+}
+
+function editSupplier(id) { openSupplierModal(id); }
+
+async function saveSupplier() {
+  var editId = document.getElementById("supplierEditId").value;
+  var code = document.getElementById("supplierCode").value.trim();
+  var name = document.getElementById("supplierName").value.trim();
+  if (!code || !name) { toast("???????????", "error"); return; }
+  var data = {
+    code: code,
+    name: name,
+    contact: document.getElementById("supplierContact").value.trim(),
+    phone: document.getElementById("supplierPhone").value.trim(),
+    address: document.getElementById("supplierAddress").value.trim(),
+    notes: document.getElementById("supplierNotes").value.trim()
+  };
+  try {
+    if (editId) {
+      await supabaseRest("PATCH", "suppliers", data, "?id=eq." + encodeURIComponent(editId));
+    } else {
+      await supabaseRest("POST", "suppliers", data);
+    }
+    closeModal("supplierModal");
+    loadSuppliersFromSupabase();
+    toast(editId ? "??????" : "??????");
+  } catch(e) {
+    toast("?????" + (e.message || e), "error");
+  }
+}
+
+async function deleteSupplier(id) {
+  if (!confirm("??????????")) return;
+  try {
+    await supabaseRest("DELETE", "suppliers", null, "?id=eq." + encodeURIComponent(id));
+    loadSuppliersFromSupabase();
+    toast("??????");
+  } catch(e) { toast("?????" + (e.message || e), "error"); }
+}
+
+/* ?? User Management (Admin only) ?? */
+function loadUsersFromSupabase() {
+  supabaseRest("GET", "app_users", null, "?select=*&order=created_at.desc").then(data => {
+    window._appUsers = data || [];
+    renderUserManagement();
+  }).catch(() => {
+    window._appUsers = window._appUsers || [];
+    renderUserManagement();
+  });
+}
+
+window.syncUsersFromSupabase = function() { loadUsersFromSupabase(); };
+
+function renderUserManagement() {
+  var body = document.getElementById("userManagementBody");
+  var empty = document.getElementById("userManagementEmpty");
+  if (!body) return;
+  var users = window._appUsers || [];
+  if (!users.length) { body.innerHTML = ""; empty.style.display = "block"; return; }
+  empty.style.display = "none";
+  body.innerHTML = users.map(function(u) {
+    var sc = Array.isArray(u.supplier_codes) ? u.supplier_codes.join(", ") : (u.supplier_codes || "");
+    var createdAt = u.created_at ? new Date(u.created_at).toLocaleString("zh-CN") : "";
+    return '<tr><td>' + esc(u.username) + '</td><td><span class="user-role ' + u.role + '">' + (u.role==="admin"?"???":"???") + '</span></td><td>' + esc(sc||"??") + '</td><td>' + esc(createdAt) + '</td><td><button class="btn outline small" onclick="editUser('' + u.id + '')">??</button> <button class="btn outline small" onclick="openResetPwd('' + u.id + '','' + esc(u.username) + '')">????</button> <button class="btn danger small" onclick="deleteUser('' + u.id + '')">??</button></td></tr>';
+  }).join("");
+}
+
+function openUserModal(id) {
+  if (id) {
+    var u = (window._appUsers||[]).find(function(x) { return x.id === id; });
+    if (!u) return;
+    document.getElementById("userModalTitle").textContent = "????";
+    document.getElementById("userEditId").value = u.id;
+    document.getElementById("userEditUsername").value = u.username || "";
+    document.getElementById("userEditPassword").value = "";
+    document.getElementById("userEditRole").value = u.role || "viewer";
+    document.getElementById("userEditSupplierCodes").value = Array.isArray(u.supplier_codes) ? u.supplier_codes.join(", ") : (u.supplier_codes || "");
+  } else {
+    document.getElementById("userModalTitle").textContent = "????";
+    document.getElementById("userEditId").value = "";
+    document.getElementById("userEditUsername").value = "";
+    document.getElementById("userEditPassword").value = "";
+    document.getElementById("userEditRole").value = "viewer";
+    document.getElementById("userEditSupplierCodes").value = "";
+  }
+  document.getElementById("userModal").classList.add("show");
+}
+
+window.editUser = function(id) { openUserModal(id); };
+
+async function saveUser() {
+  var editId = document.getElementById("userEditId").value;
+  var username = document.getElementById("userEditUsername").value.trim();
+  var password = document.getElementById("userEditPassword").value;
+  var role = document.getElementById("userEditRole").value;
+  var scRaw = document.getElementById("userEditSupplierCodes").value.trim();
+  var supplierCodes = scRaw ? scRaw.split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
+
+  if (!username) { toast("??????", "error"); return; }
+
+  try {
+    var data = { username: username, role: role, supplier_codes: supplierCodes };
+    if (password && password.length >= 4) {
+      var salt = generateSalt();
+      var hash = await hashPassword(password, salt);
+      data.password_hash = salt + ":" + hash;
+    }
+    if (editId) {
+      await supabaseRest("PATCH", "app_users", data, "?id=eq." + encodeURIComponent(editId));
+    } else {
+      if (!password || password.length < 4) { toast("????4?", "error"); return; }
+      await supabaseRest("POST", "app_users", data);
+    }
+    closeModal("userModal");
+    loadUsersFromSupabase();
+    toast(editId ? "?????" : "?????");
+  } catch(e) {
+    toast("?????" + (e.message || e), "error");
+  }
+}
+
+function openResetPwd(userId, username) {
+  document.getElementById("resetPwdTargetUser").value = userId;
+  document.getElementById("resetPwdLabel").textContent = "??? " + username + " ????";
+  document.getElementById("resetPwdNew").value = "";
+  document.getElementById("resetPwdModal").classList.add("show");
+}
+window.openResetPwd = openResetPwd;
+
+async function resetUserPassword() {
+  var userId = document.getElementById("resetPwdTargetUser").value;
+  var newPwd = document.getElementById("resetPwdNew").value;
+  if (!newPwd || newPwd.length < 4) { toast("????4?", "error"); return; }
+  try {
+    var salt = generateSalt();
+    var hash = await hashPassword(newPwd, salt);
+    await supabaseRest("PATCH", "app_users", {password_hash: salt + ":" + hash}, "?id=eq." + encodeURIComponent(userId));
+    closeModal("resetPwdModal");
+    toast("?????");
+  } catch(e) {
+    toast("?????" + (e.message || e), "error");
+  }
+}
+window.resetUserPassword = resetUserPassword;
+
+async function deleteUser(id) {
+  if (!confirm("?????????")) return;
+  try {
+    await supabaseRest("DELETE", "app_users", null, "?id=eq." + encodeURIComponent(id));
+    loadUsersFromSupabase();
+    toast("?????");
+  } catch(e) { toast("?????" + (e.message || e), "error"); }
+}
+window.deleteUser = deleteUser;
+
+function isAdmin() { return currentUser && currentUser.role === "admin"; }
+
+
+/* ?? KPI Flow History: Global summary ?? */
+window.openKpiFlowHistory = function(type) {
+  ensureFlowData();
+  addEnhancementUI();
+
+  var modal = document.getElementById("flowHistoryModal");
+  if (!modal) return;
+
+  document.getElementById("flowHistoryTitle").textContent = type === "transit" ? "????????" : "?????????";
+
+  document.getElementById("flowOrderInfo").innerHTML = '<b>????</b> - ?????' + (type === "transit" ? "??" : "???") + '??';
+
+  var purchaseQty = 0, deliveredQty = 0, transitQty = 0, outstandingQty = 0;
+  state.orders.forEach(function(o) {
+    var d = derived(o);
+    purchaseQty += d.purchaseQty;
+    deliveredQty += d.deliveredQty;
+    transitQty += d.transitQty;
+    outstandingQty += d.outstandingQty;
+  });
+  document.getElementById("flowPurchase").textContent = fmt(purchaseQty);
+  document.getElementById("flowDelivered").textContent = fmt(deliveredQty);
+  document.getElementById("flowTransit").textContent = fmt(transitQty);
+  document.getElementById("flowOutstanding").textContent = fmt(outstandingQty);
+
+  var head = document.getElementById("flowHistoryHead");
+  var body = document.getElementById("flowHistoryBody");
+  var empty = document.getElementById("flowHistoryEmpty");
+  var rows = [];
+
+  if (type === "transit") {
+    head.innerHTML = '<tr><th>????</th><th>????</th><th class="num">????</th><th class="num">???</th><th class="num">????</th><th>??</th><th>??</th><th>??</th></tr>';
+
+    state.transitHistory.filter(function(item) { return qty(item.remainingQty) > 0; }).sort(function(a,b) {
+      return String(b.deliveryDate).localeCompare(String(a.deliveryDate)) || String(b.createdAt).localeCompare(String(a.createdAt));
+    }).forEach(function(item) {
+      var status = getTransitStatus(item);
+      var received = receivedQuantity(item);
+      rows.push('<tr><td class="mono">' + esc(item.materialCode) + '</td><td>' + esc(item.poNumber) + '</td><td class="num">' + fmt(item.quantity) + '</td><td class="num success-text">' + fmt(received) + '</td><td class="num" style="color:var(--orange);font-weight:700">' + fmt(item.remainingQty) + '</td><td><span class="flow-status ' + status.className + '">' + esc(status.text) + '</span></td><td>' + esc(item.note||item.source||"") + '</td><td><div class="flow-actions"><button class="btn primary small" onclick="confirmTransitArrival('' + item.id + '')">????</button><button class="btn danger small" onclick="deleteTransitDelivery('' + item.id + '')">????</button></div></td></tr>');
+    });
+  } else {
+    head.innerHTML = '<tr><th>????</th><th>????</th><th>???????</th><th>??????</th><th class="num">??????</th><th>??</th><th>??</th><th>??</th></tr>';
+
+    // Legacy deliveries
+    state.deliveries.forEach(function(item) {
+      rows.push('<tr><td class="mono">' + esc(item.materialCode) + '</td><td>' + esc(item.poNumber) + '</td><td>' + esc(item.deliveryDate||"???") + '</td><td>' + esc(item.deliveryDate||"???") + '</td><td class="num success-text">' + fmt(item.quantity) + '</td><td><span class="flow-status delivered">????</span></td><td>' + esc(item.note||item.source||"????") + '</td><td><button class="btn danger small" onclick="deleteDelivery('' + item.id + '')">?????</button></td></tr>');
+    });
+
+    // Transit receipts (confirmed arrivals)
+    state.transitHistory.forEach(function(item) {
+      (item.receipts||[]).forEach(function(receipt) {
+        rows.push('<tr><td class="mono">' + esc(item.materialCode) + '</td><td>' + esc(item.poNumber) + '</td><td>' + esc(item.deliveryDate||"???????") + '</td><td>' + esc(receipt.receiveDate||"???") + '</td><td class="num success-text">' + fmt(receipt.quantity) + '</td><td><span class="flow-status delivered">???</span></td><td>' + esc(item.note||item.source||"") + '</td><td><button class="btn danger small" onclick="deleteTransitDelivery('' + item.id + '')">??????</button></td></tr>');
+      });
+    });
+  }
+
+  body.innerHTML = rows.join("");
+  empty.style.display = rows.length ? "none" : "block";
+  modal.classList.add("show");
+};
+
 function renderAll(){populateMaterialSelects();renderOrders();renderHistory()}
 document.querySelectorAll(".modal-backdrop").forEach(x=>x.addEventListener("click",e=>{if(e.target===x)x.classList.remove("show")}));
-renderAll();
+initAuth();
 </script>
 <!-- 供应商订单与交付管理：完整合并修正版 -->
 <style>
@@ -2334,68 +2878,23 @@ renderAll();
 })();
 </script>
 
+
 <script>
-(function() {
-  var URL = 'https://ifvzmbomwdupjgikcucy.supabase.co';
-  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A';
-  var status = 'connecting';
-  var timer = null;
-
-  function btn(){return document.getElementById('syncStatusBtn')}
-  function ui(s,m){status=s;var b=btn();if(!b)return;var c={connected:'#0e9f6e',connecting:'#f79009',error:'#e5484d',disconnected:'#98a2b3'};b.innerHTML='☁';b.style.color=c[s]||'#fff';b.title=m||s}
-  function conn(){ui('connected','云端已连接')}
-  function connErr(e){ui('error','同步失败: '+e)}
-
-
-  var HDR={apikey:KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
-
-  async function rest(p,o){
-    var r=await fetch(URL+'/rest/v1/'+p,{headers:HDR,...o});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    var ct=r.headers.get('content-type')||'';
-    return ct.includes('json')?r.json():null
-  }
-
-  async function syncUp(){
-    ui('connecting','同步中...');
-    try{
-      var st=typeof window.state!=='undefined'?window.state:null;
-      if(!st){conn();return}
-      var all=[];
-      if(Array.isArray(st.orders))st.orders.forEach(function(o){all.push({table:'orders',row:o})});
-      if(Array.isArray(st.deliveries))st.deliveries.forEach(function(d){all.push({table:'deliveries',row:d})});
-      if(Array.isArray(st.transitHistory))st.transitHistory.forEach(function(t){all.push({table:'transit_history',row:t})});
-      for(var i=0;i<all.length;i++){
-        try{await rest(all[i].table,{method:'POST',body:JSON.stringify(all[i].row),headers:Object.assign({},HDR,{'Prefer':'resolution=merge-duplicates'})})}catch(e){}
-      }
-      conn()
-    }catch(e){connErr(e.message)}
-  }
-
-  async function syncDown(){
-    try{
-      var st=typeof window.state!=='undefined'?window.state:null;
-      if(!st)return;
-      var o,d,t;
-      try{o=await rest('orders?select=*')}catch(e){} try{d=await rest('deliveries?select=*')}catch(e){} try{t=await rest('transit_history?select=*')}catch(e){}
-      if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){conn();return}
-      if(o&&o.length){o.forEach(function(co){var idx=st.orders.findIndex(function(x){return x.id===co.id});if(idx>=0)st.orders[idx]=co;else st.orders.push(co)})}
-      if(d&&d.length){d.forEach(function(cd){var idx=st.deliveries.findIndex(function(x){return x.id===cd.id});if(idx>=0)st.deliveries[idx]=cd;else st.deliveries.push(cd)})}
-      if(t&&t.length){if(!st.transitHistory)st.transitHistory=[];t.forEach(function(ct){var idx=st.transitHistory.findIndex(function(x){return x.id===ct.id});if(idx>=0)st.transitHistory[idx]=ct;else st.transitHistory.push(ct)})}
-      try{localStorage.setItem('supplier_order_delivery_manager_v1',JSON.stringify(st))}catch(e){}
-      conn()
-      if(typeof renderOrders==='function')renderOrders()
-      if(typeof renderHistory==='function')renderHistory()
-    }catch(e){connErr(e.message)}
-  }
-
-  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(syncUp,500)};
-  window.syncNow=function(){ui('connecting','同步中...');syncUp().then(syncDown)};
-
-  ui('connecting','连接中...');
-  setTimeout(function(){syncDown().catch(function(e){connErr(e.message)})},2000);
-  setInterval(function(){if(status!=='error')syncDown()},30000);
-
+(function(){
+  var URL="https://ifvzmbomwdupjgikcucy.supabase.co";
+  var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmdnptYm9td2R1cGpnaWtjdWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzM3NzAsImV4cCI6MjEwMDcwOTc3MH0.gw8ho_RuMDwbRdicwM3bl4-10A-3EIZjP2xzOB3XY6A";
+  var timer=null;
+  function btn(){return document.getElementById("syncStatusBtn")}
+  function ui(s,m){var b=btn();if(!b)return;var cl={ok:"#0e9f6e",busy:"#f79009",err:"#e5484d"};b.innerHTML="☁";b.style.color=cl[s]||"#fff";b.title=m||s}
+  var HDR={apikey:KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"};
+  async function rest(p){var r=await fetch(URL+"/rest/v1/"+p,{headers:HDR});if(!r.ok&&r.status!==406)throw Error(r.status+"");try{return await r.json()}catch(e){return null}}
+  async function saveAll(){ui("busy","同步中...");try{var st2=window.state;if(!st2||!st2.orders)return;for(var i=0;i<st2.orders.length;i++){try{await fetch(URL+"/rest/v1/orders",{method:"POST",headers:Object.assign({},HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(st2.orders[i])})}catch(e){}}var a=["deliveries","transit_history"];for(var ai=0;ai<a.length;ai++){var arr=st2[a[ai]];if(arr)for(var i=0;i<arr.length;i++){try{await fetch(URL+"/rest/v1/"+a[ai],{method:"POST",headers:Object.assign({},HDR,{"Prefer":"resolution=merge-duplicates"}),body:JSON.stringify(arr[i])})}catch(e){}}}ui("ok","已同步")}catch(e){ui("err","同步失败")}}
+  async function loadAll(){try{var st2=window.state;if(!st2)return;var o,d,t;try{o=await rest("orders?select=*")}catch(e){}try{d=await rest("deliveries?select=*")}catch(e){}try{t=await rest("transit_history?select=*")}catch(e){}if((!o||!o.length)&&(!d||!d.length)&&(!t||!t.length)){ui("ok","就绪");return}if(o&&o.length)for(var i=0;i<o.length;i++){var idx=st2.orders.findIndex(function(x){return x.id===o[i].id});if(idx>=0)st2.orders[idx]=o[i];else st2.orders.push(o[i])}if(d&&d.length)for(var i=0;i<d.length;i++){var idx=st2.deliveries.findIndex(function(x){return x.id===d[i].id});if(idx>=0)st2.deliveries[idx]=d[i];else st2.deliveries.push(d[i])}if(t&&t.length){if(!st2.transitHistory)st2.transitHistory=[];for(var i=0;i<t.length;i++){var idx=st2.transitHistory.findIndex(function(x){return x.id===t[i].id});if(idx>=0)st2.transitHistory[idx]=t[i];else st2.transitHistory.push(t[i])}}try{localStorage.setItem("supplier_order_delivery_manager_v1",JSON.stringify(st2))}catch(e){}try{if(typeof renderOrders==="function")renderOrders();if(typeof renderHistory==="function")renderHistory()}catch(e){}ui("ok","已同步")}catch(e){ui("err","拉取失败")}}
+  window.__supabaseSync=function(){if(timer)clearTimeout(timer);timer=setTimeout(saveAll,800)};
+  window.syncNow=function(){ui("busy","同步中...");saveAll().then(loadAll)};
+  setTimeout(function(){loadAll().catch(function(){})},3000);
+  setInterval(function(){loadAll().catch(function(){})},60000);
 })();
-</script></body>
+</script>
+</body>
 </html>
